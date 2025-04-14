@@ -1,0 +1,236 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model - stores persistent user data
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  phone             String?   @unique
+  password          String    // Hashed password
+  name              String?
+  emailVerified     DateTime?
+  twoFactorEnabled  Boolean   @default(false)
+  role              Role      @default(USER)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  lastLogin         DateTime?
+  active            Boolean   @default(true)
+  failedLoginAttempts Int     @default(0)
+  lockedUntil       DateTime?
+  
+  // Relations
+  profile           Profile?
+  posts             Post[]
+  sessions          Session[]
+  tokens            Token[]
+  permissions       UserPermission[]
+  socialAccounts    SocialAccount[]
+  auditLogs         AuditLog[]
+}
+
+// Role enum
+enum Role {
+  USER
+  ADMIN
+  MODERATOR
+  EDITOR
+}
+
+// Permission model for granular access control
+model Permission {
+  id               String           @id @default(cuid())
+  name             String           @unique
+  description      String?
+  resource         String           // The resource this permission applies to (e.g., "posts", "users")
+  action           String           // The action allowed (e.g., "create", "read", "update", "delete")
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  // Relations
+  rolePermissions  RolePermission[]
+  userPermissions  UserPermission[]
+}
+
+// RolePermission for role-based permissions
+model RolePermission {
+  id               String     @id @default(cuid())
+  role             Role
+  permissionId     String
+  permission       Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  
+  createdAt        DateTime   @default(now())
+  
+  @@unique([role, permissionId])
+  @@index([role])
+  @@index([permissionId])
+}
+
+// UserPermission for user-specific permissions (overrides)
+model UserPermission {
+  id               String     @id @default(cuid())
+  userId           String
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissionId     String
+  permission       Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  granted          Boolean    @default(true) // true=allow, false=deny (override)
+  
+  createdAt        DateTime   @default(now())
+  
+  @@unique([userId, permissionId])
+  @@index([userId])
+  @@index([permissionId])
+}
+
+// Session model for session management
+model Session {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress        String?
+  userAgent        String?
+  expiresAt        DateTime
+  createdAt        DateTime  @default(now())
+  refreshToken     String?   @unique
+  isValid          Boolean   @default(true)
+  lastActive       DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([refreshToken])
+}
+
+// Token model for various tokens (verification, password reset, etc.)
+model Token {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type             TokenType
+  value            String    @unique
+  expiresAt        DateTime
+  createdAt        DateTime  @default(now())
+  usedAt           DateTime?
+  invalidated      Boolean   @default(false)
+  
+  @@index([userId])
+  @@index([value])
+  @@index([type])
+}
+
+// TokenType enum
+enum TokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  TWO_FACTOR
+  API_KEY
+}
+
+// SocialAccount for OAuth/social logins
+model SocialAccount {
+  id               String         @id @default(cuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider         SocialProvider
+  providerUserId   String
+  accessToken      String?
+  refreshToken     String?
+  expiresAt        DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  
+  @@unique([provider, providerUserId])
+  @@index([userId])
+}
+
+// SocialProvider enum
+enum SocialProvider {
+  GOOGLE
+  GITHUB
+  FACEBOOK
+  TWITTER
+  APPLE
+}
+
+// Profile model - extended user information
+model Profile {
+  id              String   @id @default(cuid())
+  avatar          String?  // URL to avatar image
+  gender          Gender?
+  position        String?  // Job position or title
+  idCard          String?  @unique // National ID card number
+  nationality     String?
+  homeDomicile    String?  // Home address or permanent residence
+  bio             String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relation to User (one-to-one)
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Gender enum
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+// Post model for blog/content posts
+model Post {
+  id               String         @id @default(cuid())
+  title            String
+  slug             String         @unique
+  content          String         @db.Text
+  excerpt          String?        @db.Text
+  featuredImage    String?        // URL to featured image
+  published        Boolean        @default(false)
+  viewCount        Int            @default(0)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  
+  // Relations
+  authorId         String
+  author           User           @relation(fields: [authorId], references: [id])
+  categoryId       String?
+  category         PostCategory?  @relation(fields: [categoryId], references: [id])
+  
+  @@index([authorId])
+  @@index([categoryId])
+}
+
+// PostCategory model for categorizing posts
+model PostCategory {
+  id               String    @id @default(cuid())
+  name             String    @unique
+  slug             String    @unique
+  description      String?   @db.Text
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  // Relation to Post (one-to-many)
+  posts            Post[]
+}
+
+// AuditLog - security events tracking
+model AuditLog {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action           String
+  resource         String?   // Resource being acted upon
+  resourceId       String?   // ID of the resource
+  ipAddress        String?
+  userAgent        String?
+  metadata         String?   @db.Text  // JSON stringified data
+  createdAt        DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+}

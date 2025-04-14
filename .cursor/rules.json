@@ -1,0 +1,141 @@
+{
+  "name": "Next.js Coding Standards",
+  "description": "Coding standards for Next.js applications to ensure consistent, robust code that follows industry best practices",
+  "rules": [
+    {
+      "category": "TypeScript",
+      "rules": [
+        "Use TypeScript with strict type checking for all files",
+        "Define proper interfaces and types for props, state, and function returns",
+        "Avoid using 'any' type; use proper typing or generic types instead"
+      ]
+    },
+    {
+      "category": "Component Structure",
+      "rules": [
+        "Use functional components with React hooks",
+        "Client components should be marked with 'use client' directive at the top",
+        "Keep components focused on a single responsibility",
+        "Organize complex components into smaller sub-components"
+      ]
+    },
+    {
+      "category": "File Naming & Organization",
+      "rules": [
+        "Use PascalCase for React components (e.g., NavBar.tsx, Button.tsx)",
+        "Use kebab-case for utility files (e.g., search-form.tsx)",
+        "Group related components in subdirectories (e.g., ui/, cards/, editor/)",
+        "Use consistent import paths with @/ alias for src directory"
+      ]
+    },
+    {
+      "category": "Styling",
+      "rules": [
+        "Use Tailwind CSS for styling with the class-variance-authority pattern",
+        "Follow utility-first approach with composable classes",
+        "Extract reusable UI patterns into components under src/components/ui/",
+        "Use the cn() utility for conditional class merging"
+      ]
+    },
+    {
+      "category": "Code Formatting",
+      "rules": [
+        "Use 2-space indentation",
+        "Use semicolons consistently",
+        "Keep line length under 100 characters",
+        "Use single quotes for strings",
+        "Use trailing commas in multi-line objects and arrays"
+      ]
+    },
+    {
+      "category": "State Management",
+      "rules": [
+        "Use React Hooks (useState, useEffect, useContext) for state management",
+        "Implement custom hooks for reusable stateful logic",
+        "Keep state as minimal and local as possible",
+        "Use proper cleanup in useEffect hooks"
+      ]
+    },
+    {
+      "category": "Performance Optimization",
+      "rules": [
+        "Implement useMemo and useCallback where appropriate",
+        "Use proper key props in lists",
+        "Implement proper memoization for expensive calculations",
+        "Lazy load components and assets when possible"
+      ]
+    },
+    {
+      "category": "Error Handling",
+      "rules": [
+        "Implement proper error boundaries",
+        "Use try/catch blocks for async operations",
+        "Include proper error feedback for users",
+        "Handle loading and error states in data fetching operations"
+      ]
+    },
+    {
+      "category": "Accessibility",
+      "rules": [
+        "Ensure proper ARIA attributes",
+        "Use semantic HTML elements",
+        "Implement keyboard navigation",
+        "Include proper focus management",
+        "Ensure sufficient color contrast"
+      ]
+    },
+    {
+      "category": "Testing",
+      "rules": [
+        "Write unit tests for components and utilities",
+        "Implement integration tests for complex interactions",
+        "Mock external dependencies in tests",
+        "Test accessibility compliance"
+      ]
+    },
+    {
+      "category": "Documentation",
+      "rules": [
+        "Add JSDoc comments for functions and components",
+        "Document props with meaningful descriptions",
+        "Include usage examples for complex components",
+        "Document edge cases and limitations"
+      ]
+    },
+    {
+      "category": "Code Quality",
+      "rules": [
+        "Follow ESLint rules consistently",
+        "Avoid code duplication by extracting common functionality",
+        "Use meaningful variable and function names",
+        "Keep functions small and focused on a single task"
+      ]
+    },
+    {
+      "category": "Dependencies",
+      "rules": [
+        "Keep dependencies updated but stable",
+        "Use exact versions for dependencies to ensure consistency",
+        "Prefer lightweight and well-maintained libraries"
+      ]
+    },
+    {
+      "category": "Security",
+      "rules": [
+        "Validate user inputs",
+        "Sanitize data from external sources",
+        "Implement proper authentication and authorization checks",
+        "Follow security best practices for web applications"
+      ]
+    },
+    {
+      "category": "Performance",
+      "rules": [
+        "Optimize image loading with proper sizing and formats",
+        "Implement code splitting for route-based components",
+        "Use proper caching strategies",
+        "Minimize JavaScript bundle size"
+      ]
+    }
+  ]
+} 
