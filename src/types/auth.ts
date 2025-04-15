@@ -97,4 +97,11 @@ export type PasswordResetFormState = {
     success?: boolean;
 };
 
+// Logout response type
+export interface LogoutResponse {
+    success: boolean;
+    timestamp: string;
+    message: string;
+    error?: string;
+}
 

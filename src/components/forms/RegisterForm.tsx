@@ -4,48 +4,141 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useActionState, useEffect } from "react";
+import { handleRegister } from "@/actions/auth/registerActions";
+import { RegisterFormState } from "@/types/auth";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import Link from "next/link";
+import Image from "next/image";
 
-export function LoginForm({
+export function RegisterForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const router = useRouter();
+  //define intial regiration form state
+  const initialState: RegisterFormState = {
+    errors: {
+      email: "",
+      name: "",
+      password: "",
+      confirmPassword: "",
+      general: "",
+    },
+    success: false,
+  };
+
+  //form handler
+  const [state, formAction, isPending] = useActionState<
+    RegisterFormState,
+    FormData
+  >(handleRegister, initialState);
+
+  // handle successful registration
+  useEffect(() => {
+    if (!state) return; // Early return if state is undefined
+
+    const handleSuccessfulRegistration = () => {
+      try {
+        if (state?.success) {
+          // Explicit boolean check
+          toast.success("Account created successfully", {
+            description: "Please check your email to verify your account.",
+            duration: 5000,
+          });
+          // Redirect to verification pending page
+          router.push("/verify-email/pending");
+          router.refresh();
+        }
+      } catch (error) {
+        console.error("Navigation error:", error);
+        toast.error(
+          "Failed to redirect after registration. Please try again later!."
+        );
+      }
+    };
+
+    // Set a small timeout to ensure toast is visible
+    const timeoutId = setTimeout(handleSuccessfulRegistration, 100);
+
+    // Cleanup function
+    return () => clearTimeout(timeoutId);
+  }, [state?.success, router]);
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="overflow-hidden p-0">
         <CardContent className="grid p-0 md:grid-cols-2">
-          <form className="p-6 md:p-8">
+          <form action={formAction} className="p-6 md:p-8">
             <div className="flex flex-col gap-6">
               <div className="flex flex-col items-center text-center">
-                <h1 className="text-2xl font-bold">Welcome back</h1>
+                <h1 className="text-2xl font-bold">Welcome to Symtext</h1>
                 <p className="text-muted-foreground text-balance">
-                  Login to your Symtext account
+                  Create your account for free!
                 </p>
               </div>
+              {/* name */}
+              <div className="grid gap-3">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Username"
+                  name="name"
+                />
+                {state.errors.name && (
+                  <p className="text-red-400">{state.errors.name}</p>
+                )}
+              </div>
+              {/* email */}
               <div className="grid gap-3">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
-                  required
+                  placeholder="user@email.com"
+                  name="email"
                 />
+                {state.errors.email && (
+                  <p className="text-red-400">{state.errors.email}</p>
+                )}
               </div>
+              {/* password */}
               <div className="grid gap-3">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
-                  <a
-                    href="#"
-                    className="ml-auto text-sm underline-offset-2 hover:underline"
-                  >
-                    Forgot your password?
-                  </a>
                 </div>
-                <Input id="password" type="password" required />
+                <Input
+                  id="password"
+                  type="password"
+                  name="password"
+                  placeholder="********"
+                />
+                {state.errors.password && (
+                  <p className="text-red-400">{state.errors.password}</p>
+                )}
               </div>
+              {/* confirm Password */}
+              <div className="grid gap-3">
+                <div className="flex items-center">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                </div>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  name="confirmPassword"
+                  placeholder="********"
+                />
+                {state.errors.confirmPassword && (
+                  <p className="text-red-400">{state.errors.confirmPassword}</p>
+                )}
+              </div>
+
               <Button type="submit" className="w-full">
-                Login
+                {isPending ? "Signing up..." : "Create account"}
               </Button>
-              <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
+              {/* <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
                 <span className="bg-card text-muted-foreground relative z-10 px-2">
                   Or continue with
                 </span>
@@ -78,28 +171,31 @@ export function LoginForm({
                   </svg>
                   <span className="sr-only">Login with Meta</span>
                 </Button>
-              </div>
+              </div> */}
               <div className="text-center text-sm">
-                Don&apos;t have an account?{" "}
-                <a href="/register" className="underline underline-offset-4">
-                  Sign up
-                </a>
+                Already have an account?
+                <Link href="/login" className="underline underline-offset-4">
+                  Sign in
+                </Link>
               </div>
             </div>
           </form>
           <div className="bg-muted relative hidden md:block">
-            <img
+            <Image
               src="/placeholder.svg"
               alt="Image"
               className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+              width={500}
+              height={500}
             />
           </div>
         </CardContent>
       </Card>
       <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
+        By clicking continue, you agree to our
+        <Link href="#">Terms of Service</Link>
+        and <Link href="#">Privacy Policy</Link>.
       </div>
     </div>
-  )
+  );
 }

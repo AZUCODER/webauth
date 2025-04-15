@@ -4,43 +4,57 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import Form from "next/form";
-import { useActionState, useEffect } from "react";
-import { registerHandler } from "@/actions/registerActions";
-import { RegisterFormState } from "@/types/auth";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { LoginFormState } from "@/types/auth";
+import { useActionState, useEffect } from "react";
+import handleLogin from "@/actions/auth/loginActions";
+import { toast } from "sonner";
 
-export function RegisterForm({
+export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  //define intial regiration form state
-  const initialState: RegisterFormState = {
+  const router = useRouter();
+
+  //Define intial regiration form state
+  const initialState: LoginFormState = {
     errors: {
       email: "",
-      name: "",
       password: "",
-      confirmPassword: "",
+      general: "",
     },
     success: false,
   };
 
   //form handler
   const [state, formAction, isPending] = useActionState<
-    RegisterFormState,
+    LoginFormState,
     FormData
-  >(registerHandler, initialState);
+  >(handleLogin, initialState);
 
   // handle successful registration
-  const router = useRouter();
   useEffect(() => {
-    if (state?.success) {
-      toast.success("Account created successfully");
-      router.push("/login");
-      router.refresh();
-    }
+    if (!state) return; // Early return if state is undefined
+
+    const handleSuccessfulLogin = () => {
+      try {
+        if (state?.success) {
+          // Explicit boolean check
+          toast.success("Login successfully");
+          router.push("/dashboard");
+          router.refresh();
+        }
+      } catch (error) {
+        console.error("Navigation error:", error);
+        toast.error("Failed to redirect login. Please try again!.");
+      }
+    };
+    // Set a small timeout to ensure toast is visible
+    const timeoutId = setTimeout(handleSuccessfulLogin, 100);
+    // Cleanup function
+    return () => clearTimeout(timeoutId);
   }, [state?.success, router]);
 
   return (
@@ -49,26 +63,14 @@ export function RegisterForm({
         <CardContent className="grid p-0 md:grid-cols-2">
           <form action={formAction} className="p-6 md:p-8">
             <div className="flex flex-col gap-6">
+              {/* form title */}
               <div className="flex flex-col items-center text-center">
-                <h1 className="text-2xl font-bold">Welcome to Symtext</h1>
+                <h1 className="text-2xl font-bold">Welcome back</h1>
                 <p className="text-muted-foreground text-balance">
-                  Create your account for free!
+                  Login to your Symtext account
                 </p>
               </div>
-              {/* name */}
-              <div className="grid gap-3">
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Username"
-                  name="name"
-                />
-                {state.errors.name && (
-                  <p className="text-red-400">{state.errors.name}</p>
-                )}
-              </div>
-              {/* email */}
+              {/* Email */}
               <div className="grid gap-3">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -78,44 +80,37 @@ export function RegisterForm({
                   name="email"
                 />
                 {state.errors.email && (
-                  <p className="text-red-400">{state.errors.email}</p>
+                  <p className="text-sm text-red-500" id="email-error">
+                    {state.errors.email}
+                  </p>
                 )}
               </div>
               {/* password */}
               <div className="grid gap-3">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
+                  <Link
+                    href="/reset-password/request"
+                    className="ml-auto text-sm underline-offset-2 hover:underline"
+                  >
+                    Forgot your password?
+                  </Link>
                 </div>
-                <Input
-                  id="password"
-                  type="password"
-                  name="password"
-                  placeholder="********"
-                />
+                <Input id="password" type="password" name="password" />
                 {state.errors.password && (
-                  <p className="text-red-400">{state.errors.password}</p>
+                  <p className="text-sm text-red-500" id="password-error">
+                    {state.errors.password}
+                  </p>
                 )}
               </div>
-              {/* confirm Password */}
-              <div className="grid gap-3">
-                <div className="flex items-center">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
-                </div>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  name="confirmPassword"
-                  placeholder="********"
-                />
-                {state.errors.confirmPassword && (
-                  <p className="text-red-400">{state.errors.confirmPassword}</p>
-                )}
-              </div>
-
-              <Button type="submit" className="w-full">
-                {isPending ? "Creating" : "Create account"}
+              <Button
+                type="submit"
+                className="w-full disabled:bg-gray-500"
+                disabled={isPending}
+              >
+                {isPending ? "Signing in" : "Sign in"}
               </Button>
-              <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
+              {/* <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
                 <span className="bg-card text-muted-foreground relative z-10 px-2">
                   Or continue with
                 </span>
@@ -148,28 +143,30 @@ export function RegisterForm({
                   </svg>
                   <span className="sr-only">Login with Meta</span>
                 </Button>
-              </div>
+              </div> */}
               <div className="text-center text-sm">
-                Already have an account?
-                <Link href="/login" className="underline underline-offset-4">
-                  Sign in
+                Don&apos;t have an account?{" "}
+                <Link href="/register" className="underline underline-offset-4">
+                  Sign up
                 </Link>
               </div>
             </div>
           </form>
           <div className="bg-muted relative hidden md:block">
-            <img
+            <Image
               src="/placeholder.svg"
               alt="Image"
               className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+              width={500}
+              height={500}
             />
           </div>
         </CardContent>
       </Card>
       <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
         By clicking continue, you agree to our{" "}
-        <Link href="#">Terms of Service</Link>
-        and <Link href="#">Privacy Policy</Link>.
+        <Link href="#">Terms of Service</Link> and{" "}
+        <Link href="#">Privacy Policy</Link>.
       </div>
     </div>
   );

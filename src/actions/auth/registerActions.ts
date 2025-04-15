@@ -4,18 +4,20 @@ import { RegisterFormState, RegisterSchema } from "@/types/auth";
 import bcrypt from 'bcryptjs';
 import { revalidatePath } from "next/cache";
 import { z } from 'zod';
+import { createEmailVerificationToken } from '@/lib/tokens';
+import { sendVerificationEmail } from '@/lib/email/resend';
 
 
 
 // Registration with email and password
-export async function registerHandler(prevState: RegisterFormState, formData: FormData) {
+export async function handleRegister(prevState: RegisterFormState, formData: FormData) {
     const name = formData.get("name") as string;
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
     const confirmPassword = formData.get("confirmPassword") as string;
 
     try {
-        // Validate form data using RegisterSchema
+        // Validate register form data using RegisterSchema
         const validatedData = RegisterSchema.parse({
             name,
             email,
@@ -31,7 +33,7 @@ export async function registerHandler(prevState: RegisterFormState, formData: Fo
         if (existingUser) {
             return {
                 errors: {
-                    email: 'email is taken',
+                    email: 'Email is already registered',
                     general: ''
                 }
             };
@@ -40,18 +42,27 @@ export async function registerHandler(prevState: RegisterFormState, formData: Fo
         // Hash password and create user
         const hashedPassword = await bcrypt.hash(validatedData.password, 10);
 
-        await prisma.user.create({
+        // Create the user with email verification status as null (unverified)
+        const user = await prisma.user.create({
             data: {
                 name: validatedData.name,
                 email: validatedData.email,
                 password: hashedPassword,
+                emailVerified: null, // User email is not verified yet
             }
         });
+
+        // Generate email verification token
+        const verificationToken = await createEmailVerificationToken(user.id);
+        
+        // Send verification email
+        await sendVerificationEmail(user.email, verificationToken);
 
         revalidatePath('/login');
         return {
             errors: { general: '' },
-            success: true
+            success: true,
+            message: 'Registration successful! Please check your email to verify your account.'
         };
 
     } catch (error) {
@@ -69,7 +80,7 @@ export async function registerHandler(prevState: RegisterFormState, formData: Fo
         }
         return {
             errors: {
-                general: "failed to create account. please try again",
+                general: "Failed to create account. Please try again.",
                 email: error instanceof Error ? error.message : 'Unknown error occurred'
             },
             success: false
