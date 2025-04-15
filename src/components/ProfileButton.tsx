@@ -25,7 +25,7 @@ export function ProfileButton() {
   if (!isAuthenticated || !user) return null;
 
   // Get initials for avatar
-  const initials = user.username ? user.username.charAt(0).toUpperCase() : 'U';
+  const initials = user.username ? user.username.charAt(0).toUpperCase() : 'U'; 
 
   return (
     <div className="relative" ref={dropdownRef}>

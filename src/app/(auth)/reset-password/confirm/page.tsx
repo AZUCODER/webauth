@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { resetPassword } from '@/actions/auth/passwordResetActions'
 
-export default function ConfirmPasswordResetPage() {
+// Component to handle token retrieval with useSearchParams
+function PasswordResetForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
@@ -230,5 +231,44 @@ export default function ConfirmPasswordResetPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Loading fallback for Suspense
+function FormSkeleton() {
+  return (
+    <div className="min-h-screen flex flex-col justify-center items-center bg-gray-50 py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="h-8 bg-gray-200 rounded animate-pulse mb-4 mx-auto w-2/3"></div>
+        <div className="h-4 bg-gray-200 rounded animate-pulse mb-4 mx-auto w-1/2"></div>
+      </div>
+      
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          <div className="space-y-6">
+            <div>
+              <div className="h-4 bg-gray-200 rounded animate-pulse mb-2 w-1/4"></div>
+              <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            
+            <div>
+              <div className="h-4 bg-gray-200 rounded animate-pulse mb-2 w-1/3"></div>
+              <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            
+            <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Main page component with Suspense
+export default function ConfirmPasswordResetPage() {
+  return (
+    <Suspense fallback={<FormSkeleton />}>
+      <PasswordResetForm />
+    </Suspense>
   )
 } 

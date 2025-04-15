@@ -64,7 +64,7 @@ export function RegisterForm({
 
     // Cleanup function
     return () => clearTimeout(timeoutId);
-  }, [state?.success, router]);
+  }, [state, router]);
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>

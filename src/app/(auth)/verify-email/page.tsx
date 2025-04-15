@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { verifyEmail } from '@/actions/auth/verifyActions'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 
-export default function VerifyEmailPage() {
+// Component to handle token retrieval with useSearchParams
+function VerifyEmailContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
@@ -153,5 +154,41 @@ export default function VerifyEmailPage() {
         </div>
       </motion.div>
     </div>
+  )
+}
+
+// Loading fallback for Suspense
+function VerificationSkeleton() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-indigo-100 px-4">
+      <div className="max-w-md w-full overflow-hidden rounded-2xl bg-white shadow-xl">
+        <div className="relative h-36 bg-indigo-600">
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="h-8 w-48 bg-indigo-500 rounded animate-pulse"></div>
+          </div>
+          <div className="absolute -bottom-12 inset-x-0 flex justify-center">
+            <div className="h-24 w-24 rounded-full border-4 border-white bg-white shadow-md flex items-center justify-center">
+              <div className="animate-spin h-12 w-12 rounded-full border-4 border-indigo-500 border-t-transparent"></div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="px-6 pt-16 pb-8">
+          <div className="text-center mt-4">
+            <div className="h-6 w-40 bg-gray-200 rounded animate-pulse mx-auto mb-2"></div>
+            <div className="h-4 w-56 bg-gray-200 rounded animate-pulse mx-auto"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Main page component with Suspense
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<VerificationSkeleton />}>
+      <VerifyEmailContent />
+    </Suspense>
   )
 } 
