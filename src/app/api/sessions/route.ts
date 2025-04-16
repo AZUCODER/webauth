@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getSession } from '@/lib/session/actions';
-import { Prisma } from '@prisma/client';
+import { getSession } from '@/lib/session/manager';
 
 /**
  * API Route for retrieving session data

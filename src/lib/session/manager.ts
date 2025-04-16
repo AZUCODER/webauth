@@ -1,3 +1,5 @@
+'use server'
+
 import { cookies } from 'next/headers';
 import { jwtVerify, SignJWT } from 'jose';
 import { type SessionUser, type SessionOptions, type SessionError, type SessionStatus, type SessionMetadata } from '@/lib/session/types';

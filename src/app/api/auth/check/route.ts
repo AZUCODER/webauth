@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSession, checkSessionStatus } from '@/lib/session/actions';
+import { getSession, checkSessionStatus } from '@/lib/session/manager';
 
 /**
  * API Route for checking authentication status

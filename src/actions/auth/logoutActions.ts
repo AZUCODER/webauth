@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { type LogoutResponse } from '@/types/auth'
-import { destroySession } from '@/lib/session/actions'
+import { destroySession } from '@/lib/session/manager'
 
 /**
  * Handles user logout by clearing all authentication-related cookies

@@ -4,7 +4,7 @@ import { LoginFormState, LoginSchema } from "@/types/auth";
 import bcrypt from 'bcryptjs';
 import { revalidatePath } from "next/cache";
 import { z } from 'zod';
-import { createSession } from '@/lib/session/actions';
+import { createSession } from '@/lib/session/manager';
 import { createEmailVerificationToken } from '@/lib/tokens';
 import { sendVerificationEmail } from '@/lib/email/resend';
 

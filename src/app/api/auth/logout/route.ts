@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { destroySession } from '@/lib/session/actions';
+import { destroySession } from '@/lib/session/manager';
 
 /**
  * API Route for logging out
