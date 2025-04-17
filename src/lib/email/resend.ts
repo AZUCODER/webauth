@@ -6,7 +6,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // Company name and branding
 const COMPANY_NAME = process.env.COMPANY_NAME || 'WebAuth';
 const PRIMARY_COLOR = '#4F46E5'; // Indigo color
-const LOGO_URL = process.env.LOGO_URL || 'https://via.placeholder.com/150x50?text=Logo';
+const LOGO_URL = process.env.LOGO_URL || '/webauth-logo.svg';
 
 // Email verification template
 export async function sendVerificationEmail(email: string, token: string) {

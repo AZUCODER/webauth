@@ -42,7 +42,7 @@ export function LoginForm({
       try {
         if (state?.success) {
           // Explicit boolean check
-          toast.success("Login successfully");
+          toast.success("Welcome back!");
           router.push("/dashboard");
           router.refresh();
         }
@@ -164,8 +164,8 @@ export function LoginForm({
         </CardContent>
       </Card>
       <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
-        By clicking continue, you agree to our{" "}
-        <Link href="#">Terms of Service</Link> and{" "}
+        By clicking continue, you agree to our
+        <Link href="#">Terms of Service</Link>
         <Link href="#">Privacy Policy</Link>.
       </div>
     </div>
