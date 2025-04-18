@@ -7,7 +7,13 @@ const PROTECTED_ROUTES = [
   '/dashboard',
   '/profile',
   '/settings',
-  '/api/protected'
+  '/api/protected',
+  '/posts/add',
+  '/posts/edit',
+  '/posts/view',
+  '/post-categories/add',
+  '/post-categories/edit',
+  '/post-categories/view',
 ]
 
 // Define routes that are only accessible for non-authenticated users

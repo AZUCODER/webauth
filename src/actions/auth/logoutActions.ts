@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { type LogoutResponse } from '@/types/auth'
 import { destroySession } from '@/lib/session/manager'
+import { getPathsToRevalidate, LOGOUT_REDIRECT_PATH } from '@/lib/constants/paths'
 
 /**
  * Handles user logout by clearing all authentication-related cookies
@@ -17,15 +18,17 @@ export async function logoutHandler(): Promise<LogoutResponse> {
         // Destroy the current session
         await destroySession();
         
-        // Revalidate auth-dependent paths
-        revalidatePath('/');
-        revalidatePath('/dashboard');
-        revalidatePath('/profile');
+        // Revalidate all auth-dependent paths from centralized constants
+        const pathsToRevalidate = getPathsToRevalidate();
+        pathsToRevalidate.forEach(path => {
+            revalidatePath(path);
+        });
         
         return {
             success: true,
             timestamp,
-            message: 'Logout successful'
+            message: 'Logout successful',
+            redirectTo: LOGOUT_REDIRECT_PATH
         }
         
     } catch (error) {

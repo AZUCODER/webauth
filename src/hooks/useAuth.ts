@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { LOGOUT_REDIRECT_PATH, DEFAULT_LOGIN_REDIRECT_PATH } from '@/lib/constants/paths';
 
 // Define the Auth interface
 interface AuthState {
@@ -81,6 +82,9 @@ export function useAuth() {
         throw new Error('Logout failed');
       }
       
+      // Get response data to check for redirect path
+      const data = await res.json();
+      
       // Update auth state
       setAuthState({
         isAuthenticated: false,
@@ -89,14 +93,20 @@ export function useAuth() {
         user: null
       });
       
+      // Use the redirect path from the response or fall back to the constant
+      const redirectPath = data.redirectTo || LOGOUT_REDIRECT_PATH;
+      
       // Redirect to login page
-      router.push('/login');
+      router.push(redirectPath);
       
     } catch (error) {
       setAuthState(prev => ({
         ...prev,
         error: error instanceof Error ? error.message : 'Logout failed'
       }));
+      
+      // Even on error, try to redirect to the login page
+      router.push(LOGOUT_REDIRECT_PATH);
     }
   }, [router]);
 
@@ -106,7 +116,7 @@ export function useAuth() {
       if (authState.isLoading) return;
       
       if (!authState.isAuthenticated) {
-        router.push('/login');
+        router.push(LOGOUT_REDIRECT_PATH);
         return;
       }
       

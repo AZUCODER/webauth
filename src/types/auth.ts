@@ -103,5 +103,6 @@ export interface LogoutResponse {
     timestamp: string;
     message: string;
     error?: string;
+    redirectTo?: string;
 }
 

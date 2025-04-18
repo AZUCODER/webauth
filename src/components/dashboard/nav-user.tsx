@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   IconCreditCard,
@@ -6,14 +6,11 @@ import {
   IconLogout,
   IconNotification,
   IconUserCircle,
-} from "@tabler/icons-react"
+  IconUserScan,
+} from "@tabler/icons-react";
 
-import { useAuth } from "@/hooks/useAuth"
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar"
+import { useAuth } from "@/hooks/useAuth";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,18 +19,19 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
+import Link from "next/link";
 
 export function NavUser() {
-  const { isAuthenticated, isLoading, user, logout } = useAuth()
-  const { isMobile } = useSidebar()
-  
+  const { isAuthenticated, isLoading, user, logout } = useAuth();
+  const { isMobile } = useSidebar();
+
   if (isLoading) {
     return (
       <SidebarMenu>
@@ -47,15 +45,19 @@ export function NavUser() {
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
-    )
+    );
   }
-  
-  if (!isAuthenticated || !user) return null
-  
+
+  if (!isAuthenticated || !user) return null;
+
   // Generate initials for avatar fallback
-  const initials = user.username 
-    ? user.username.split(' ').map(n => n[0]).join('').toUpperCase()
-    : 'U'
+  const initials = user.username
+    ? user.username
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+    : "U";
 
   return (
     <SidebarMenu>
@@ -67,13 +69,17 @@ export function NavUser() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg grayscale">
-                <AvatarImage alt={user.username || 'User'} />
-                <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+                <AvatarImage alt={user.username || "User"} />
+                <AvatarFallback className="rounded-lg">
+                  {initials}
+                </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.username || 'User'}</span>
+                <span className="truncate font-medium">
+                  {user.username || "User"}
+                </span>
                 <span className="text-muted-foreground truncate text-xs">
-                  {user.email || 'No email'}
+                  {user.email || "No email"}
                 </span>
               </div>
               <IconDotsVertical className="ml-auto size-4" />
@@ -88,23 +94,35 @@ export function NavUser() {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage alt={user.username || 'User'} />
-                  <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+                  <AvatarImage alt={user.username || "User"} />
+                  <AvatarFallback className="rounded-lg">
+                    {initials}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.username || 'User'}</span>
+                  <span className="truncate font-medium">
+                    {user.username || "User"}
+                  </span>
                   <span className="text-muted-foreground truncate text-xs">
-                    {user.email || 'No email'}
+                    {user.email || "No email"}
                   </span>
                 </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <IconUserCircle className="mr-2 size-4" />
-                Account
-              </DropdownMenuItem>
+              <Link href="/users">
+                <DropdownMenuItem>
+                  <IconUserCircle className="mr-2 size-4" />
+                  Account
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/profile">
+                <DropdownMenuItem>
+                  <IconUserScan className="mr-2 size-4" />
+                  Profile
+                </DropdownMenuItem>
+              </Link>
               <DropdownMenuItem>
                 <IconCreditCard className="mr-2 size-4" />
                 Billing
@@ -123,5 +141,5 @@ export function NavUser() {
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
-  )
+  );
 }

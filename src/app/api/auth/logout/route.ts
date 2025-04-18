@@ -1,26 +1,27 @@
-import { NextResponse } from 'next/server';
-import { destroySession } from '@/lib/session/manager';
+import { logoutHandler } from "@/actions/auth/logoutActions";
+import { NextResponse } from "next/server";
 
 /**
- * API Route for logging out
- * This allows client components to trigger logout
+ * API route for handling logout requests from the client side
+ * Uses the server-side logoutHandler for consistent logout behavior
  */
 export async function POST() {
   try {
-    // Destroy the current session
-    await destroySession();
-
-    return NextResponse.json({
-      success: true,
-      message: 'Logged out successfully'
-    });
+    // Call the shared logout handler
+    const result = await logoutHandler();
+    
+    // Return the result as JSON
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('Logout error:', error);
-
+    console.error("API logout error:", error);
+    
+    // Return an error response
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to logout'
+        message: "Logout failed",
+        timestamp: new Date().toISOString(),
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );

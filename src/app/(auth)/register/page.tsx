@@ -1,5 +1,5 @@
 
-import { RegisterForm } from "@/components/forms/RegisterForm";
+import { RegisterForm } from "@/components/dashboard/forms/RegisterForm";
 
 export default function RegisterPage() {
   return (

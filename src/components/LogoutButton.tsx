@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { logoutHandler } from "@/actions/auth/logoutActions";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { LOGOUT_REDIRECT_PATH } from "@/lib/constants/paths";
 
 export function LogoutButton() {
   const router = useRouter();
@@ -18,12 +19,16 @@ export function LogoutButton() {
 
       if (result.success) {
         toast.success("Logged out successfully");
-        // Clear any client-side state here
+        
+        // Clear any client-side state
         localStorage.clear();
         sessionStorage.clear();
 
+        // Use the redirect path from the response or fall back to the constant
+        const redirectPath = result.redirectTo || LOGOUT_REDIRECT_PATH;
+        
         // Force a hard refresh to clear all client state
-        window.location.href = "/login";
+        window.location.href = redirectPath;
       } else {
         throw new Error(result.message || "Logout failed");
       }
@@ -32,7 +37,7 @@ export function LogoutButton() {
       toast.error("Failed to logout. Please try again.");
 
       // Optionally force logout on frontend anyway
-      router.push("/login");
+      router.push(LOGOUT_REDIRECT_PATH);
     } finally {
       setIsLoggingOut(false);
     }
@@ -43,8 +48,8 @@ export function LogoutButton() {
       onClick={handleLogout}
       disabled={isLoggingOut}
       variant="destructive"
-          className="w-full"
-          size="sm"
+      className="w-full"
+      size="sm"
     >
       {isLoggingOut ? (
         <>
