@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ImageUploadDialog from "@/components/editor/image-upload-dialog"
-import DOMPurify from "dompurify";
+import DOMPurify from "isomorphic-dompurify"; 
 import { Editor } from "@tiptap/react";
 
 
