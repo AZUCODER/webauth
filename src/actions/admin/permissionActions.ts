@@ -5,6 +5,7 @@ import { getSession } from '@/lib/session/manager';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { Permission, Role } from '@prisma/client';
+import { logAuditEvent, safeStringify } from '@/lib/audit/auditLogger';
 
 // Permission validation schema
 const PermissionSchema = z.object({
@@ -27,6 +28,7 @@ export type RolePermissionActionReturn = {
   error?: string;
   role?: string;
   permissions?: string[];
+  message?: string; 
 };
 
 // Get all permissions
@@ -117,6 +119,19 @@ export async function createPermission(formData: FormData): Promise<PermissionAc
       },
     });
 
+    // Log the action
+    await logAuditEvent({
+      userId: session.userId,
+      action: 'create',
+      resource: 'permission',
+      resourceId: newPermission.id,
+      metadata: {
+        name: newPermission.name,
+        resource: newPermission.resource,
+        action: newPermission.action
+      }
+    });
+
     revalidatePath('/permissions');
 
     return { success: true, permission: newPermission };
@@ -186,6 +201,26 @@ export async function updatePermission(id: string, formData: FormData): Promise<
       },
     });
 
+    // Log the action
+    await logAuditEvent({
+      userId: session.userId,
+      action: 'update',
+      resource: 'permission',
+      resourceId: updatedPermission.id,
+      metadata: {
+        previous: {
+          name: existingPermission.name,
+          resource: existingPermission.resource,
+          action: existingPermission.action
+        },
+        updated: {
+          name: updatedPermission.name,
+          resource: updatedPermission.resource,
+          action: updatedPermission.action
+        }
+      }
+    });
+
     revalidatePath('/permissions');
 
     return { success: true, permission: updatedPermission };
@@ -211,18 +246,31 @@ export async function deletePermission(id: string): Promise<PermissionActionRetu
       return { success: false, error: 'Unauthorized!' };
     }
 
-    // Check if permission exists
-    const permission = await prisma.permission.findUnique({
+    // Get permission details before deletion for audit log
+    const permissionToDelete = await prisma.permission.findUnique({
       where: { id },
     });
 
-    if (!permission) {
+    if (!permissionToDelete) {
       return { success: false, error: 'Permission not found' };
     }
 
     // Delete permission
     await prisma.permission.delete({
       where: { id },
+    });
+
+    // Log the action
+    await logAuditEvent({
+      userId: session.userId,
+      action: 'delete',
+      resource: 'permission',
+      resourceId: id,
+      metadata: {
+        name: permissionToDelete.name,
+        resource: permissionToDelete.resource,
+        action: permissionToDelete.action
+      }
     });
 
     revalidatePath('/permissions');
@@ -268,35 +316,60 @@ export async function updateRolePermissions(role: Role, permissionIds: string[])
       return { success: false, error: 'Unauthorized!' };
     }
 
-    // Delete existing role permissions
-    await prisma.rolePermission.deleteMany({
+    // Get existing permissions for the role for audit log
+    const existingRolePermissions = await prisma.rolePermission.findMany({
       where: { role },
+      include: {
+        permission: true,
+      },
     });
 
-    // Create new role permissions
-    if (permissionIds.length > 0) {
-      await prisma.rolePermission.createMany({
-        data: permissionIds.map(permissionId => ({
+    const previousPermissionIds = existingRolePermissions.map(rp => rp.permissionId);
+
+    // Update role permissions by first removing all existing role permissions
+    // and then adding the new ones
+    await prisma.$transaction([
+      prisma.rolePermission.deleteMany({
+        where: {
           role,
-          permissionId,
-        })),
-      });
-    }
+        },
+      }),
+      ...permissionIds.map(permissionId =>
+        prisma.rolePermission.create({
+          data: {
+            role,
+            permissionId,
+          },
+        })
+      ),
+    ]);
 
-    revalidatePath('/permissions/roles');
-
-    // Get updated permissions
-    const rolePermissions = await prisma.rolePermission.findMany({
-      where: { role },
-      include: { permission: true },
+    // Log the action
+    await logAuditEvent({
+      userId: session.userId,
+      action: 'role:update',
+      resource: 'role-permissions',
+      resourceId: role.toString(),
+      metadata: {
+        role,
+        previousPermissions: previousPermissionIds,
+        newPermissions: permissionIds,
+        added: permissionIds.filter(id => !previousPermissionIds.includes(id)),
+        removed: previousPermissionIds.filter(id => !permissionIds.includes(id))
+      }
     });
 
-    const permissions = rolePermissions.map(rp => rp.permission.name);
+    // Revalidate related paths
+    revalidatePath('/permissions/roles');
+    revalidatePath(`/permissions/roles/${role}`);
 
-    return { success: true, role, permissions };
+    return {
+      success: true,
+      message: `Permissions for role '${role}' updated successfully.`,
+    };
   } catch (error) {
-    console.error(`Error updating permissions for role ${role}:`, error);
-    return { success: false, error: 'Failed to update role permissions' };
+    console.error('Error updating role permissions:', error);
+    return { success: false, error: 'An error occurred while updating role permissions.' };
   }
 }
 
@@ -362,50 +435,63 @@ export async function updateUserPermissions(
       return { success: false, error: 'Unauthorized!' };
     }
 
-    // Get user
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
+    // Get existing user permissions for audit log
+    const existingUserPermissions = await prisma.userPermission.findMany({
+      where: { userId },
+      include: {
+        permission: true,
+      },
     });
 
-    if (!user) {
-      return { success: false, error: 'User not found' };
-    }
+    const previousOverrides = Object.fromEntries(
+      existingUserPermissions.map(up => [up.permissionId, up.granted])
+    );
 
-    // Process in a transaction
+    // Process the updates in a transaction
     await prisma.$transaction(async (tx) => {
-      // Delete all existing overrides
+      // First, delete all existing overrides for this user
       await tx.userPermission.deleteMany({
-        where: { userId },
+        where: { userId }
       });
 
-      // Create new overrides
-      const overrideEntries = Object.entries(permissionOverrides);
-      if (overrideEntries.length > 0) {
-        for (const [permissionName, granted] of overrideEntries) {
-          // Get permission ID from name
-          const permission = await tx.permission.findUnique({
-            where: { name: permissionName },
-          });
-          
-          if (permission) {
-            await tx.userPermission.create({
-              data: {
-                userId,
-                permissionId: permission.id,
-                granted,
-              },
-            });
+      // Then create new overrides based on the input
+      for (const [permissionId, granted] of Object.entries(permissionOverrides)) {
+        await tx.userPermission.create({
+          data: {
+            userId,
+            permissionId,
+            granted
           }
-        }
+        });
       }
     });
 
-    revalidatePath('/permissions/users');
+    // Log the action
+    await logAuditEvent({
+      userId: session.userId,
+      action: 'permission:update',
+      resource: 'user-permissions',
+      resourceId: userId,
+      metadata: {
+        targetUserId: userId,
+        previousOverrides,
+        newOverrides: permissionOverrides,
+      }
+    });
 
-    return { success: true };
+    // Revalidate paths
+    revalidatePath('/permissions/users');
+    revalidatePath(`/permissions/users/${userId}`);
+
+    return { 
+      success: true 
+    };
   } catch (error) {
-    console.error(`Error updating permissions for user ${userId}:`, error);
-    return { success: false, error: 'Failed to update user permissions' };
+    console.error('Error updating user permissions:', error);
+    return { 
+      success: false,
+      error: 'Failed to update user permissions: ' + (error instanceof Error ? error.message : 'Unknown error')
+    };
   }
 }
 

@@ -9,7 +9,6 @@ import { join } from 'path';
 // Upload image to Aliyun OSS
 export const uploadImgToCloud = async (formData: FormData) => {
     const file = formData.get('file') as File;
-    console.log({ file });
 
     if (!file || !file.type.startsWith('image/')) {
         throw new Error('Invalid file type');
@@ -44,7 +43,6 @@ export const uploadImgToCloud = async (formData: FormData) => {
 // Upload image to local storage
 export const uploadImgToLocal = async (formData: FormData) => {
     const file = formData.get('file') as File;
-    console.log({ file });
 
     if (!file || !file.type.startsWith('image/')) {
         throw new Error('Invalid file type');

@@ -21,16 +21,13 @@ export default async function EditPostPage({
     redirect("/login");
   }
 
-  // Await both params and searchParams before accessing properties
-  const [resolvedParams] = await Promise.all([
-    params,
-    searchParams
-  ]);
-
+  // Await params before accessing its properties
+  const { id } = await params;
+  
   // Get post data for editing
   const post = await prisma.post.findUnique({
     where: {
-      id: resolvedParams.id,
+      id: id,
     },
   });
 

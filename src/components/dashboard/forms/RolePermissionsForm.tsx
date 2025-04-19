@@ -11,7 +11,7 @@ import { updateRolePermissions } from '@/actions/admin/roleActions';
 interface Permission {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   resource: string;
 }
 
@@ -93,7 +93,7 @@ export function RolePermissionsForm({ role, permissions, initialPermissions }: R
         const someSelected = resourcePermissionIds.some(id => selectedPermissions.includes(id));
         
         return (
-          <Card key={resource} className="p-4">
+          <Card key={resource} className="p-4 rounded-sm shadow">
             <div className="mb-4 flex items-center">
               <Checkbox 
                 id={`resource-${resource}`}

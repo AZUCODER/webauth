@@ -41,14 +41,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Post, PostStatus} from "@prisma/client";
 import { Pagination } from "@/components/custom-pagination";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { CustomDialog } from "@/components/dashboard/custom-dialog";
 import { toast } from "sonner";
 import Image from "next/image";
 
@@ -337,68 +330,43 @@ export default function PostList({
       )}
 
       {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Pencil className="h-5 w-5 text-blue-500" />
-              Edit Post
-            </DialogTitle>
-            <DialogDescription>
-              You are about to edit <span className="font-semibold">{postTitleToEdit}</span>. 
-              Continue to the edit page?
-            </DialogDescription>
-          </DialogHeader>
-          
-          <DialogFooter className="flex justify-between sm:justify-end gap-2 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => setEditDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button 
-              variant="default" 
-              onClick={handleEditConfirm}
-            >
-              Continue to Edit
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CustomDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        title="Edit Post"
+        description={
+          <>
+            You are about to edit <span className="font-semibold">{postTitleToEdit}</span>. 
+            Continue to the edit page?
+          </>
+        }
+        icon={Pencil}
+        iconColor="text-blue-500"
+        confirmText="Continue to Edit"
+        cancelText="Cancel"
+        onConfirm={handleEditConfirm}
+        confirmVariant="default"
+      />
 
-      {/* Delete Dialog - improved version */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              Confirm Deletion
-            </DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete <span className="font-semibold">{postTitleToEdit}</span>?
-              This action cannot be undone and will permanently remove this post.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <DialogFooter className="flex justify-between sm:justify-end gap-2 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDeleteConfirm}
-              disabled={isLoading}
-            >
-              {isLoading ? "Deleting..." : "Delete Post"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Delete Dialog */}
+      <CustomDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Confirm Deletion"
+        description={
+          <>
+            Are you sure you want to delete <span className="font-semibold">{postTitleToEdit}</span>?
+            This action cannot be undone and will permanently remove this post.
+          </>
+        }
+        icon={AlertTriangle}
+        iconColor="text-red-500"
+        confirmText="Delete Post"
+        cancelText="Cancel"
+        onConfirm={handleDeleteConfirm}
+        isLoading={isLoading}
+        confirmVariant="destructive"
+      />
     </>
   );
 }

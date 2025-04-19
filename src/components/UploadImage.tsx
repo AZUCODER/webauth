@@ -79,11 +79,11 @@ const ImageUploadButton = ({ onImageUpload }: ImageUploadButtonProps) => {
           <Image
             src={imageUrl}
             alt="Uploaded"
-            className="mt-4 max-w-full h-auto"
+            className="mt-4 w-full h-auto rounded-md shadow"
             width={1450}
             height={1450}
           />
-          <p className="text-xs font-light py-2 text-red-400">Image uploaded into AliOSS successfully!</p>
+          <p className="text-xs font-light text-center py-2 text-red-400">Image uploaded into AliOSS successfully!</p>
         </div>
       )}
     </div>

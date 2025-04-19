@@ -13,13 +13,13 @@ export default async function CreatePermissionPage() {
   return (
     <div className="container mx-auto py-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Create Permission</h1>
-        <p className="text-gray-500 mt-2">
+        <h1 className="text-xl font-bold">Create Permission</h1>
+        <p className="text-gray-500 mt-2 bg-gray-100 p-2 rounded-sm">
           Add a new permission to control access to resources and actions.
         </p>
       </div>
       
-      <div className="bg-card rounded-lg shadow p-6">
+      <div className="bg-card rounded-sm shadow-md p-6">
         <PermissionForm />
       </div>
     </div>

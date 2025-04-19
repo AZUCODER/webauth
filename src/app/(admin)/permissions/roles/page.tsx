@@ -98,8 +98,8 @@ export default async function RolePermissionsPage() {
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Role Permissions</h1>
-          <p className="text-gray-500 mt-2">
+          <h1 className="text-xl font-bold">Role Permissions</h1>
+          <p className="text-gray-500 mt-2 bg-gray-100 p-2 rounded-sm">
             Define which permissions are granted to each user role
           </p>
         </div>

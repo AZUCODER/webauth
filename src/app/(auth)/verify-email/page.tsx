@@ -23,6 +23,8 @@ function VerifyEmailContent() {
       return
     }
     
+    let timerRef: NodeJS.Timeout | undefined;
+    
     const verify = async () => {
       try {
         const result = await verifyEmail(token)
@@ -32,10 +34,10 @@ function VerifyEmailContent() {
           setMessage(result.message || 'Email verified successfully!')
           
           // Start countdown for redirect
-          const timer = setInterval(() => {
+          timerRef = setInterval(() => {
             setCountdown((prev) => {
               if (prev <= 1) {
-                clearInterval(timer)
+                clearInterval(timerRef)
                 router.push('/login')
                 return 0
               }
@@ -43,7 +45,6 @@ function VerifyEmailContent() {
             })
           }, 1000)
           
-          return () => clearInterval(timer)
         } else {
           setStatus('error')
           setMessage(result.error || 'Verification failed. Please try again.')
@@ -55,7 +56,12 @@ function VerifyEmailContent() {
       }
     }
     
-    verify()
+    verify();
+    
+    // Return cleanup function
+    return () => {
+      if (timerRef) clearInterval(timerRef);
+    };
   }, [token, router])
   
   return (

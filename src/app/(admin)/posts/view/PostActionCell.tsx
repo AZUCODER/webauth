@@ -10,19 +10,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Eye, Pencil, Trash, MoreHorizontal, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { deletePost } from "@/actions/admin/postActions";
 import { Post } from "@prisma/client";
+import { CustomDialog } from "@/components/dashboard/custom-dialog";
 
 interface PostActionCellProps {
   post: Post;
@@ -99,37 +92,24 @@ export function PostActionCell({ post }: PostActionCellProps) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              Confirm Deletion
-            </DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete <span className="font-semibold">{post.title}</span>?
-              This action cannot be undone and will permanently remove this post.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <DialogFooter className="flex justify-between sm:justify-end gap-2 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}
-              disabled={isDeleting}
-            >
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting ? "Deleting..." : "Delete Post"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CustomDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Confirm Deletion"
+        description={
+          <>
+            Are you sure you want to delete <span className="font-semibold">{post.title}</span>?
+            This action cannot be undone and will permanently remove this post.
+          </>
+        }
+        icon={AlertTriangle}
+        iconColor="text-red-500"
+        confirmText="Delete Post"
+        cancelText="Cancel"
+        onConfirm={handleDelete}
+        isLoading={isDeleting}
+        confirmVariant="destructive"
+      />
     </>
   );
 }

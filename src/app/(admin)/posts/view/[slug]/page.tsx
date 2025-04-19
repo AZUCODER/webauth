@@ -26,8 +26,8 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
   }
 
   // Await params before accessing properties
-  const resolvedParams = await params;
-  const post = await getPostBySlug(resolvedParams.slug);
+  const { slug } = await params;
+  const post = await getPostBySlug(slug);
 
   // Handle not found
   if (!post) {

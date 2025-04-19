@@ -7,6 +7,7 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { Role } from '@prisma/client';
 import { UserSchema } from '@/types/user';
+import { hasPermission } from '@/lib/authorization/permissions';
 
 
 
@@ -38,9 +39,14 @@ export async function getUsers(): Promise<UserActionReturn> {
   try {
     const session = await getSession()
     
-    // Check if user is admin
-    if (!session || session.role !== 'ADMIN') {
+    // Check if user has permission to view users
+    if (!session) {
       return { success: false, error: 'Unauthorized!' }
+    }
+
+    const canViewUsers = await hasPermission('user:view-all');
+    if (!canViewUsers) {
+      return { success: false, error: 'You do not have permission to view all users' }
     }
 
     const users = await prisma.user.findMany({
@@ -68,9 +74,17 @@ export async function getUserById(id: string): Promise<UserActionReturn> {
   try {
     const session = await getSession()
     
-    // Check if user is admin
-    if (!session || session.role !== 'ADMIN') {
+    // Check if user has permission
+    if (!session) {
       return { success: false, error: 'Unauthorized!' }
+    }
+
+    // Users can view their own profile or need permission to view others
+    const isOwnProfile = session.userId === id;
+    const canViewOtherUsers = await hasPermission('user:view-all');
+    
+    if (!isOwnProfile && !canViewOtherUsers) {
+      return { success: false, error: 'You do not have permission to view this user' }
     }
 
     const user = await prisma.user.findUnique({
@@ -93,7 +107,7 @@ export async function getUserById(id: string): Promise<UserActionReturn> {
     return { success: true, user }
   } catch (error) {
     console.error('Error fetching user:', error)
-    return { success: false, error: 'failed to fetch uer info' }
+    return { success: false, error: 'failed to fetch user info' }
   }
 }
 
@@ -102,9 +116,14 @@ export async function createUser(formData: FormData): Promise<UserActionReturn> 
   try {
     const session = await getSession()
     
-    // Check if user is admin
-    if (!session || session.role !== 'ADMIN') {
+    // Check if user has permission to create users
+    if (!session) {
       return { success: false, error: 'Unauthorized' }
+    }
+
+    const canCreateUser = await hasPermission('user:create');
+    if (!canCreateUser) {
+      return { success: false, error: 'You do not have permission to create users' }
     }
 
     const email = formData.get('email') as string
@@ -168,15 +187,28 @@ export async function updateUser(id: string, formData: FormData): Promise<UserAc
   try {
     const session = await getSession()
     
-    // Check if user is admin
-    if (!session || session.role !== 'ADMIN') {
+    // Check permissions for updating users
+    if (!session) {
       return { success: false, error: 'Unauthorized!' }
+    }
+
+    // Users can update their own profile or need permission to update others
+    const isOwnProfile = session.userId === id;
+    const canUpdateOtherUsers = await hasPermission('user:update-all');
+    
+    if (!isOwnProfile && !canUpdateOtherUsers) {
+      return { success: false, error: 'You do not have permission to update this user' }
+    }
+
+    // Non-admin users can't change roles even for their own account
+    const role = formData.get('role') as Role;
+    if (role && session.role !== 'ADMIN' && role !== session.role) {
+      return { success: false, error: 'You do not have permission to change user roles' }
     }
 
     const email = formData.get('email') as string
     const name = formData.get('username') as string
     const password = formData.get('password') as string || undefined
-    const role = formData.get('role') as Role
 
     // Validate input data, excluding password if not provided
     const dataToValidate: z.infer<typeof UserSchema> = {
@@ -253,11 +285,37 @@ export async function deleteUser(id: string): Promise<UserActionReturn> {
   try {
     const session = await getSession()
     
-    // Check if user is admin
-    if (!session || session.role !== 'ADMIN') {
-      return { success: false, error: 'Unauthorized' }
+    // Check if user has permission to delete users
+    if (!session) {
+      return { success: false, error: 'Unauthorized!' }
     }
 
+    // Prevent users from deleting their own account through this endpoint
+    // Use a dedicated account deletion flow instead
+    if (session.userId === id) {
+      return { success: false, error: 'You cannot delete your own account through this interface' }
+    }
+
+    const canDeleteUsers = await hasPermission('user:delete');
+    if (!canDeleteUsers) {
+      return { success: false, error: 'You do not have permission to delete users' }
+    }
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { id }
+    })
+
+    if (!user) {
+      return { success: false, error: 'User not found' }
+    }
+
+    // Prevent deletion of admin users by non-admin users
+    if (user.role === 'ADMIN' && session.role !== 'ADMIN') {
+      return { success: false, error: 'You cannot delete admin users' }
+    }
+
+    // Delete the user
     await prisma.user.delete({
       where: { id }
     })

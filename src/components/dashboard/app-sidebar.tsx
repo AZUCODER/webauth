@@ -4,23 +4,20 @@ import * as React from "react";
 import {
   IconChartBar,
   IconDashboard,
-  IconDatabase,
-  IconAi,
-  IconTransform,
-  IconFileWord,
   IconFolder,
   IconHelp,
-  IconInnerShadowTop,
-  IconListDetails,
-  IconUserEdit,
   IconSearch,
-  IconSettings,
   IconUsers,
-  IconCalendarDollar,
+  IconPencilPlus,
+  IconCircles,
+  IconSettings,
+  IconHistory,
+  IconAdjustments,
 } from "@tabler/icons-react";
 
-import { NavDocuments } from "@/components/dashboard/nav-documents";
+import { NavApps } from "@/components/dashboard/nav-apps";
 import { NavMain } from "@/components/dashboard/nav-main";
+import { NavAdmin } from "@/components/dashboard/nav-admin";
 import { NavSecondary } from "@/components/dashboard/nav-secondary";
 import { NavUser } from "@/components/dashboard/nav-user";
 import {
@@ -35,16 +32,12 @@ import {
 import Link from "next/link";
 
 const data = {
+  // Sidebar-Nav-dashboards
   navMain: [
     {
       title: "Dashboard",
       url: "#",
       icon: IconDashboard,
-    },
-    {
-      title: "Lifecycle",
-      url: "#",
-      icon: IconListDetails,
     },
     {
       title: "Analytics",
@@ -62,44 +55,88 @@ const data = {
       icon: IconUsers,
     },
   ],
+
+  // Sidebar-Nav-apps
   apps: [
     {
-      name: "Datahouse",
-      url: "#",
-      icon: IconDatabase,
-    },
-    {
       name: "CMS",
-      url: "/posts/view",
-      icon: IconUserEdit,
-    },
-    {
-      name: "OSS",
       url: "#",
-      icon: IconFileWord,
+      icon: IconPencilPlus,
+      submenu: [
+        {
+          name: "Posts",
+          url: "/posts/view",
+        },
+        {
+          name: "Categories",
+          url: "/post-categories/view",
+        },
+      ],
     },
     {
       name: "CRM",
       url: "#",
-      icon: IconTransform,
-    },
-    {
-      name: "AI",
-      url: "#",
-      icon: IconAi,
-    },
-    {
-      name: "E-Commerce",
-      url: "#",
-      icon: IconCalendarDollar,
+      icon: IconUsers,
+      submenu: [
+        {
+          name: "Customers",
+          url: "/customers/view",
+        },
+        {
+          name: "Orders",
+          url: "/orders/view",
+        },
+      ],
     },
   ],
-  navSecondary: [
+
+  // Sidebar-Nav-admin
+  admin: [
     {
-      title: "Settings",
+      name: "Authorization",
+      url: "#",
+      icon: IconCircles,
+      submenu: [
+        {
+          name: "Permissions",
+          url: "/permissions",
+        },
+        {
+          name: "Roles",
+          url: "/permissions/roles",
+        },
+      ],
+    },
+    {
+      name: "Security",
+      url: "#",
+      icon: IconHistory,
+      submenu: [
+        {
+          name: "Audit Logs",
+          url: "/audit-logs",
+        },
+      ],
+    },
+    {
+      name: "Settings",
       url: "#",
       icon: IconSettings,
+      submenu: [
+        {
+          name: "Users",
+          url: "/users",
+        },
+        {
+          name: "Site Settings",
+          url: "/settings",
+        },
+      ],
     },
+  ],
+
+  // Sidebar-Nav-secondary
+  navSecondary: [
     {
       title: "Get Help",
       url: "#",
@@ -112,7 +149,6 @@ const data = {
     },
   ],
 };
-
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -124,8 +160,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
               <Link href="#">
-                <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Acme Inc.</span>
+                <span className="text-base font-semibold">Admin Panel</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -133,7 +168,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavDocuments items={data.apps} />
+        <NavApps items={data.apps} />
+        <NavAdmin items={data.admin} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

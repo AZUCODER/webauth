@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/session/manager';
 import prisma from '@/lib/prisma';
+import { logAuditEvent } from '@/lib/audit/auditLogger';
 
 // Get permissions for a specific role
 export async function getRolePermissions(roleName: string) {
@@ -22,6 +23,17 @@ export async function getRolePermissions(roleName: string) {
       include: {
         permission: true,
       },
+    });
+
+    // Log the view action
+    await logAuditEvent({
+      userId: session.userId,
+      action: 'view',
+      resource: 'role-permissions',
+      resourceId: roleName,
+      metadata: {
+        role: roleName
+      }
     });
 
     return {
@@ -53,18 +65,24 @@ export async function updateRolePermissions(
     }
 
     // Verify roleName
-    // Since Role is an enum, not a model, we need to check the validity differently
-    const isValidRole = await prisma.user.findFirst({
-      where: { role: roleName as any },
-      select: { id: true }
-    });
-
-    if (!isValidRole) {
+    // Check against valid roles directly
+    const validRoles = ['USER', 'EDITOR', 'MANAGER', 'ADMIN'];
+    if (!validRoles.includes(roleName)) {
       return {
         success: false,
         message: `Role '${roleName}' is not a valid role.`,
       };
     }
+
+    // Get existing role permissions for audit log
+    const existingRolePermissions = await prisma.rolePermission.findMany({
+      where: { role: roleName as any },
+      include: {
+        permission: true,
+      },
+    });
+
+    const previousPermissionIds = existingRolePermissions.map(rp => rp.permissionId);
 
     // Validate that all permissionIds exist
     const permissions = await prisma.permission.findMany({
@@ -99,6 +117,21 @@ export async function updateRolePermissions(
         })
       ),
     ]);
+
+    // Log the update action
+    await logAuditEvent({
+      userId: session.userId,
+      action: 'role:update',
+      resource: 'role-permissions',
+      resourceId: roleName,
+      metadata: {
+        role: roleName,
+        previousPermissions: previousPermissionIds,
+        newPermissions: permissionIds,
+        added: permissionIds.filter(id => !previousPermissionIds.includes(id)),
+        removed: previousPermissionIds.filter(id => !permissionIds.includes(id))
+      }
+    });
 
     // Revalidate related paths
     revalidatePath('/permissions/roles');

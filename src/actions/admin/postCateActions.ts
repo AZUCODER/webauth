@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import slugify from 'slugify';
 import { categorySchema } from '@/types/post'
+import { hasPermission } from '@/lib/authorization/permissions';
+import { logAuditEvent, safeStringify } from '@/lib/audit/auditLogger';
 
 
 type CategoryResult =
@@ -26,9 +28,10 @@ export async function createCategory(formData: FormData): Promise<CategoryResult
             return { success: false, error: "Please login to continue" };
         }
 
-        // Check if user is admin
-        if (session.role !== 'ADMIN') {
-            return { success: false, error: "Unauthorized action!" };
+        // Check if user has permission to create post categories
+        const canCreateCategory = await hasPermission('post-category:create');
+        if (!canCreateCategory) {
+            return { success: false, error: "You don't have permission to create categories" };
         }
 
         // Extract and validate form data
@@ -92,8 +95,17 @@ export async function createCategory(formData: FormData): Promise<CategoryResult
             data: {
                 name: validatedData.name,
                 description: validatedData.description,
-                slug,
+                slug
             },
+        });
+
+        // Log audit event
+        await logAuditEvent({
+            userId: session.userId,
+            action: 'create',
+            resource: 'post-category',
+            resourceId: category.id,
+            metadata: { categoryName: category.name }
         });
 
         revalidatePath("/post-categories/view");
@@ -112,6 +124,12 @@ export async function getCategories(page = 1, limit = 10) {
     try {
         const session = await getSession();
         if (!session || !session?.userId) {
+            return null;
+        }
+
+        // Check if user has permission to view categories
+        const canViewCategories = await hasPermission('post-category:view');
+        if (!canViewCategories) {
             return null;
         }
 
@@ -157,6 +175,12 @@ export async function getCategoryById(id: string) {
             return null;
         }
 
+        // Check if user has permission to view categories
+        const canViewCategories = await hasPermission('post-category:view');
+        if (!canViewCategories) {
+            return null;
+        }
+
         const category = await prisma.postCategory.findUnique({
             where: { id },
         });
@@ -176,9 +200,10 @@ export async function updateCategory(categoryId: string, formData: FormData): Pr
             return { success: false, error: "Unauthorized, please login to continue." };
         }
 
-        // Check if user is admin
-        if (session.role !== 'ADMIN') {
-            return { success: false, error: "Unauthorized action denied!" };
+        // Check if user has permission to update categories
+        const canUpdateCategory = await hasPermission('post-category:update');
+        if (!canUpdateCategory) {
+            return { success: false, error: "You don't have permission to update categories" };
         }
 
         // Extract and validate form data
@@ -262,6 +287,25 @@ export async function updateCategory(categoryId: string, formData: FormData): Pr
             },
         });
 
+        // Log audit event
+        await logAuditEvent({
+            userId: session.userId,
+            action: 'update',
+            resource: 'post-category',
+            resourceId: category.id,
+            metadata: { 
+                categoryName: category.name,
+                changes: await safeStringify({
+                    name: validatedData.name !== existingCategory.name ? 
+                        { from: existingCategory.name, to: validatedData.name } : undefined,
+                    description: validatedData.description !== existingCategory.description ? 
+                        { from: existingCategory.description, to: validatedData.description } : undefined,
+                    slug: slug !== existingCategory.slug ? 
+                        { from: existingCategory.slug, to: slug } : undefined
+                })
+            }
+        });
+
         revalidatePath("/post-categories/view");
         return { success: true, categoryId: category.id, slug: category.slug };
     } catch (error) {
@@ -278,16 +322,17 @@ export async function deleteCategory(categoryId: string) {
     try {
         const session = await getSession();
         if (!session || !session.userId) {
-            return { success: false, error: "Unauthorized action, please login to continue!" };
+            return { success: false, error: "Unauthorized, please login to continue." };
         }
 
-        // Check if user is admin
-        if (session.role !== 'ADMIN') {
-            return { success: false, error: "Unauthorized action!" };
+        // Check if user has permission to delete categories
+        const canDeleteCategory = await hasPermission('post-category:delete');
+        if (!canDeleteCategory) {
+            return { success: false, error: "You don't have permission to delete categories" };
         }
 
-        // Check if category has posts
-        const categoryWithPostCount = await prisma.postCategory.findUnique({
+        // Check if category exists
+        const existingCategory = await prisma.postCategory.findUnique({
             where: { id: categoryId },
             include: {
                 _count: {
@@ -296,24 +341,36 @@ export async function deleteCategory(categoryId: string) {
             }
         });
 
-        if (categoryWithPostCount?._count.posts && categoryWithPostCount._count.posts > 0) {
-            return {
-                success: false,
-                error: `This category has ${categoryWithPostCount._count.posts} related posts. Please delete those posts first.`
+        if (!existingCategory) {
+            return { success: false, error: "Category not found" };
+        }
+
+        // If category has posts, don't allow deletion
+        if (existingCategory._count.posts > 0) {
+            return { 
+                success: false, 
+                error: "Cannot delete category that contains posts. Please remove or reassign all posts first."
             };
         }
 
+        // Delete the category
         await prisma.postCategory.delete({
-            where: { id: categoryId },
+            where: { id: categoryId }
+        });
+
+        // Log audit event
+        await logAuditEvent({
+            userId: session.userId,
+            action: 'delete',
+            resource: 'post-category',
+            resourceId: categoryId,
+            metadata: { categoryName: existingCategory.name }
         });
 
         revalidatePath("/post-categories/view");
         return { success: true };
     } catch (error) {
-        console.error("Category deletion error:", error);
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : "Failed to delete the category!"
-        };
+        console.error("Error deleting category:", error);
+        return { success: false, error: "An error occurred while deleting the category" };
     }
 } 

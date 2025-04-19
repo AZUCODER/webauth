@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { PostStatus } from "@prisma/client";
+import { hasPermission } from '@/lib/authorization/permissions';
+import { logAuditEvent, safeStringify } from '@/lib/audit/auditLogger';
 
 import slugify from 'slugify';
 import { postSchema } from "@/types/post";
@@ -21,6 +23,12 @@ export async function createPost(formData: FormData): Promise<PostResult> {
         const session = await getSession();
         if (!session || !session.userId) {
             return { success: false, error: "Unauthorized, pleae login to continue!" };
+        }
+
+        // Check if user has permission to create posts
+        const canCreatePost = await hasPermission('post:create');
+        if (!canCreatePost) {
+            return { success: false, error: "You don't have permission to create posts." };
         }
 
         // Extract and validate form data
@@ -100,6 +108,20 @@ export async function createPost(formData: FormData): Promise<PostResult> {
             },
         });
 
+        // Log the action
+        await logAuditEvent({
+            userId: session.userId,
+            action: 'create',
+            resource: 'post',
+            resourceId: post.id,
+            metadata: {
+                title: post.title,
+                slug: post.slug,
+                status: post.status,
+                categoryId: post.categoryId
+            }
+        });
+
         // Update correct paths
         revalidatePath("/posts/view");
 
@@ -121,16 +143,35 @@ export async function getPosts(page = 1, limit = 10, status?: PostStatus) {
             return null; // Caller should handle redirection
         }
 
+        // Check if user has permission to view posts
+        const canViewPosts = await hasPermission('post:view');
+        if (!canViewPosts) {
+            return null;
+        }
+
         const skip = (page - 1) * limit;
+
+        // Determine filter based on permissions and role
+        let where: any = {};
+        
+        // If the user is not an admin, only show their own posts unless they have post:view-all permission
+        const isAdmin = session.role === 'ADMIN';
+        const canViewAllPosts = await hasPermission('post:view-all');
+        
+        if (!isAdmin && !canViewAllPosts) {
+            where.authorId = session.userId;
+        }
+        
+        // Add status filter if provided
+        if (status) {
+            where.status = status;
+        }
 
         // Get posts with author information
         const posts = await prisma.post.findMany({
             skip,
             take: limit,
-            where: {
-                ...(status && { status }),
-                authorId: session.userId,
-            },
+            where,
             include: {
                 author: {
                     select: {
@@ -147,10 +188,7 @@ export async function getPosts(page = 1, limit = 10, status?: PostStatus) {
 
         // Get total count for pagination
         const total = await prisma.post.count({
-            where: {
-                ...(status && { status }),
-                authorId: session.userId,
-            },
+            where,
         });
 
         return {
@@ -180,6 +218,12 @@ export async function getPostBySlug(slug: string) {
 
         if (!session?.userId) return null;
 
+        // Check if user has permission to view posts
+        const canViewPosts = await hasPermission('post:view');
+        if (!canViewPosts) {
+            return null;
+        }
+
         const post = await prisma.post.findUnique({
             where: {
                 slug,
@@ -201,9 +245,10 @@ export async function getPostBySlug(slug: string) {
         // Check if user is authorized to view this post
         const isAuthor = post.authorId === session.userId;
         const isAdmin = session.role === 'ADMIN';
+        const canViewAllPosts = await hasPermission('post:view-all');
         const isPublished = post.status === 'PUBLISHED';
 
-        if (!isAuthor && !isAdmin && !isPublished) {
+        if (!isAuthor && !isAdmin && !canViewAllPosts && !isPublished) {
             return null;
         }
 
@@ -231,8 +276,14 @@ export async function updatePost(postId: string, formData: FormData): Promise<Po
             return { success: false, error: "Post not found" };
         }
 
-        // Check if user is authorized to update this post
-        if (post.authorId !== session.userId && session.role !== 'ADMIN') {
+        // Check permissions:
+        // 1. Users with 'post:update-all' permission can update any post
+        // 2. Post authors can update their own posts if they have 'post:update' permission
+        const canUpdateAllPosts = await hasPermission('post:update-all');
+        const canUpdateOwnPosts = await hasPermission('post:update');
+        const isAuthor = post.authorId === session.userId;
+        
+        if (!canUpdateAllPosts && !(canUpdateOwnPosts && isAuthor)) {
             return { success: false, error: "Not authorized to update this post" };
         }
 
@@ -311,6 +362,9 @@ export async function updatePost(postId: string, formData: FormData): Promise<Po
             publishedAt = new Date();
         }
 
+        // Store original post state for audit log
+        const originalPost = { ...post };
+
         // Update the post
         const updatedPost = await prisma.post.update({
             where: { id: postId },
@@ -325,6 +379,27 @@ export async function updatePost(postId: string, formData: FormData): Promise<Po
                 slug,
                 publishedAt,
             },
+        });
+
+        // Log the action
+        await logAuditEvent({
+            userId: session.userId,
+            action: 'update',
+            resource: 'post',
+            resourceId: postId,
+            metadata: {
+                previous: {
+                    title: originalPost.title,
+                    status: originalPost.status,
+                    slug: originalPost.slug
+                },
+                updated: {
+                    title: updatedPost.title,
+                    status: updatedPost.status,
+                    slug: updatedPost.slug
+                },
+                isAuthor
+            }
         });
 
         // Update correct paths
@@ -345,21 +420,37 @@ export async function updatePost(postId: string, formData: FormData): Promise<Po
 export async function deletePost(postId: string) {
     try {
         const session = await getSession();
-        if (!session || !session?.userId) {
+        if (!session || !session.userId) {
             return { success: false, error: "Unauthorized: Please log in" };
         }
 
         // Find the post first
         const post = await prisma.post.findUnique({
             where: { id: postId },
+            include: {
+                category: true,
+                author: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
+                }
+            }
         });
 
         if (!post) {
             return { success: false, error: "Post not found" };
         }
 
-        // Check if user is authorized to delete this post
-        if (post.authorId !== session.userId && session.role !== 'ADMIN') {
+        // Check permissions:
+        // 1. Users with 'post:delete-all' permission can delete any post
+        // 2. Post authors can delete their own posts if they have 'post:delete' permission
+        const canDeleteAllPosts = await hasPermission('post:delete-all');
+        const canDeleteOwnPosts = await hasPermission('post:delete');
+        const isAuthor = post.authorId === session.userId;
+        
+        if (!canDeleteAllPosts && !(canDeleteOwnPosts && isAuthor)) {
             return { success: false, error: "Not authorized to delete this post" };
         }
 
@@ -368,15 +459,27 @@ export async function deletePost(postId: string) {
             where: { id: postId },
         });
 
-        revalidatePath('/posts/view');
+        // Log the action
+        await logAuditEvent({
+            userId: session.userId,
+            action: 'delete',
+            resource: 'post',
+            resourceId: postId,
+            metadata: {
+                title: post.title,
+                slug: post.slug,
+                categoryName: post.category?.name,
+                authorId: post.authorId,
+                authorName: post.author?.name,
+                isAuthor
+            }
+        });
 
+        revalidatePath("/posts/view");
         return { success: true };
     } catch (error) {
-        console.error("Post deletion error:", error);
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : "Failed to delete post"
-        };
+        console.error("Error deleting post:", error);
+        return { success: false, error: "An error occurred while deleting the post" };
     }
 }
 

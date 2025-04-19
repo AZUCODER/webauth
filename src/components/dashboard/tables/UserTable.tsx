@@ -89,6 +89,8 @@ export function UserTable({ users }: UserTableProps) {
 
   return (
     <div className="w-full">
+      <h1 className="text-xl font-bold mb-4">Users Management</h1>
+      <p className="text-muted-foreground mb-4 bg-gray-100 p-2 rounded-md">Manage your users here</p>
       <div className="flex items-center justify-between py-4">
         <Input
           placeholder="Search email or username..."
@@ -98,21 +100,21 @@ export function UserTable({ users }: UserTableProps) {
         />
         <Button onClick={() => router.push('/users/create')}>
           <PlusCircle className="mr-2 h-4 w-4" />
-          Add new user
+          Add User
         </Button>
       </div>
       
-      <div className="rounded-md border">
+      <div className="rounded-md border shadow">
         <Table>
-          <TableHeader>
+          <TableHeader className='bg-gray-100'>
             <TableRow>
-              <TableHead>email</TableHead>
+              <TableHead>User Email</TableHead>
               <TableHead>UserName</TableHead>
               <TableHead>UserRole</TableHead>
               <TableHead>CreatedAt</TableHead>
               <TableHead>UpdatedAt</TableHead>
               <TableHead>Verified</TableHead>
-              <TableHead className="text-right">Action</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

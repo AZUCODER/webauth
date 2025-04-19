@@ -143,7 +143,7 @@ export function PermissionTable({ permissions }: PermissionTableProps) {
       
       <div className="rounded-md border">
         <Table>
-          <TableHeader>
+          <TableHeader className='bg-gray-100'>
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Resource</TableHead>

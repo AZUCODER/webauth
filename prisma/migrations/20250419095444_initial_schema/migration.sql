@@ -1,14 +1,20 @@
 -- CreateEnum
-CREATE TYPE "Role" AS ENUM ('USER', 'ADMIN', 'MODERATOR', 'EDITOR');
+CREATE TYPE "Role" AS ENUM ('USER', 'EDITOR', 'MANAGER', 'ADMIN');
 
 -- CreateEnum
 CREATE TYPE "TokenType" AS ENUM ('EMAIL_VERIFICATION', 'PASSWORD_RESET', 'TWO_FACTOR', 'API_KEY');
 
 -- CreateEnum
-CREATE TYPE "SocialProvider" AS ENUM ('GOOGLE', 'GITHUB', 'FACEBOOK', 'TWITTER', 'APPLE');
+CREATE TYPE "SocialProvider" AS ENUM ('GOOGLE', 'TIKTOK', 'WECHAT');
 
 -- CreateEnum
-CREATE TYPE "Gender" AS ENUM ('MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY');
+CREATE TYPE "PostStatus" AS ENUM ('DRAFT', 'PUBLISHED', 'ARCHIVED');
+
+-- CreateEnum
+CREATE TYPE "FileStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'DELETED');
+
+-- CreateEnum
+CREATE TYPE "SettingType" AS ENUM ('STRING', 'NUMBER', 'BOOLEAN', 'JSON', 'HTML', 'COLOR', 'IMAGE_URL', 'DATE');
 
 -- CreateTable
 CREATE TABLE "User" (
@@ -112,12 +118,9 @@ CREATE TABLE "SocialAccount" (
 CREATE TABLE "Profile" (
     "id" TEXT NOT NULL,
     "avatar" TEXT,
-    "gender" "Gender",
     "position" TEXT,
-    "idCard" TEXT,
-    "nationality" TEXT,
-    "homeDomicile" TEXT,
     "bio" TEXT,
+    "socialLinks" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "userId" TEXT NOT NULL,
@@ -133,8 +136,9 @@ CREATE TABLE "Post" (
     "content" TEXT NOT NULL,
     "excerpt" TEXT,
     "featuredImage" TEXT,
-    "published" BOOLEAN NOT NULL DEFAULT false,
-    "viewCount" INTEGER NOT NULL DEFAULT 0,
+    "status" "PostStatus" NOT NULL DEFAULT 'DRAFT',
+    "isFeatured" BOOLEAN NOT NULL DEFAULT false,
+    "publishedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "authorId" TEXT NOT NULL,
@@ -151,6 +155,7 @@ CREATE TABLE "PostCategory" (
     "description" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "createdById" TEXT,
 
     CONSTRAINT "PostCategory_pkey" PRIMARY KEY ("id")
 );
@@ -168,6 +173,23 @@ CREATE TABLE "AuditLog" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "AuditLog_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Setting" (
+    "id" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "description" TEXT,
+    "category" TEXT NOT NULL,
+    "isPublic" BOOLEAN NOT NULL DEFAULT false,
+    "type" "SettingType" NOT NULL DEFAULT 'STRING',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "createdById" TEXT,
+    "updatedById" TEXT,
+
+    CONSTRAINT "Setting_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -225,9 +247,6 @@ CREATE INDEX "SocialAccount_userId_idx" ON "SocialAccount"("userId");
 CREATE UNIQUE INDEX "SocialAccount_provider_providerUserId_key" ON "SocialAccount"("provider", "providerUserId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Profile_idCard_key" ON "Profile"("idCard");
-
--- CreateIndex
 CREATE UNIQUE INDEX "Profile_userId_key" ON "Profile"("userId");
 
 -- CreateIndex
@@ -253,6 +272,15 @@ CREATE INDEX "AuditLog_action_idx" ON "AuditLog"("action");
 
 -- CreateIndex
 CREATE INDEX "AuditLog_resource_idx" ON "AuditLog"("resource");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Setting_key_key" ON "Setting"("key");
+
+-- CreateIndex
+CREATE INDEX "Setting_key_idx" ON "Setting"("key");
+
+-- CreateIndex
+CREATE INDEX "Setting_category_idx" ON "Setting"("category");
 
 -- AddForeignKey
 ALTER TABLE "RolePermission" ADD CONSTRAINT "RolePermission_permissionId_fkey" FOREIGN KEY ("permissionId") REFERENCES "Permission"("id") ON DELETE CASCADE ON UPDATE CASCADE;

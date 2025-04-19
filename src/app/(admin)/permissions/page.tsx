@@ -31,14 +31,15 @@ export default async function PermissionsPage({ searchParams }: PageProps) {
   return (
     <div className="container mx-auto py-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Permissions Management</h1>
-        <p className="text-gray-500 mt-2">
-          Manage permissions that control access to system resources and actions.
+        <h1 className="text-xl font-bold">Permissions Management</h1>
+        <p className="text-gray-500 mt-2 bg-gray-100 p-2 rounded-sm">
+          Manage permissions that control access to system resources and
+          actions.
         </p>
       </div>
-      
+
       <div className="grid grid-cols-1 gap-6">
-        <div className="bg-card rounded-lg shadow">
+        <div className="bg-card rounded-sm shadow-md">
           <div className="p-6">
             <PermissionTable permissions={permissions} />
           </div>

@@ -1,3 +1,9 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -149,36 +155,23 @@ model SocialAccount {
 // SocialProvider enum
 enum SocialProvider {
   GOOGLE
-  GITHUB
-  FACEBOOK
-  TWITTER
-  APPLE
+  TIKTOK
+  WECHAT
 }
 
 // Profile model - extended user information
 model Profile {
   id           String   @id @default(cuid())
   avatar       String? // URL to avatar image
-  gender       Gender?
   position     String? // Job position or title
-  idCard       String?  @unique // National ID card number
-  nationality  String?
-  homeDomicile String? // Home address or permanent residence
   bio          String?  @db.Text
+  socialLinks  String?  @db.Text // JSON string of social media links
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   // Relation to User (one-to-one)
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-// Gender enum
-enum Gender {
-  MALE
-  FEMALE
-  OTHER
-  PREFER_NOT_TO_SAY
 }
 
 // Post model for blog/content posts
@@ -226,7 +219,7 @@ enum PostStatus {
   ARCHIVED
 }
 
-// Enum for content type
+// Enum for file status
 enum FileStatus {
   ACTIVE
   INACTIVE
@@ -249,4 +242,34 @@ model AuditLog {
   @@index([userId])
   @@index([action])
   @@index([resource])
+}
+
+// Settings - application configuration
+model Setting {
+  id          String      @id @default(cuid())
+  key         String      @unique
+  value       String      @db.Text
+  description String?
+  category    String    // Group settings by category (e.g., "general", "security", "email")
+  isPublic    Boolean     @default(false) // Whether this setting can be exposed to client-side
+  type        SettingType @default(STRING) // Data type for proper validation and UI rendering
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  createdById String?
+  updatedById String?
+
+  @@index([key])
+  @@index([category])
+}
+
+// Setting type enum
+enum SettingType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
+  HTML
+  COLOR
+  IMAGE_URL
+  DATE
 }

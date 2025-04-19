@@ -91,7 +91,7 @@ export default function CategoryTable({
   return (
     <div className="space-y-4">
       <Table>
-        <TableHeader>
+        <TableHeader className='bg-gray-100'>
           <TableRow>
             <TableHead>CateName</TableHead>
             <TableHead>Description</TableHead>

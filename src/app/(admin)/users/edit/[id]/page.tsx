@@ -6,9 +6,9 @@ import { Separator } from '@/components/ui/separator';
 import { Loader2 } from 'lucide-react';
 
 interface Props {
-  params: {
+  params: Promise<{
     id: string
-  };
+  }>;
 }
 
 export default async function EditUserPage({ params }: Props) {
@@ -19,8 +19,11 @@ export default async function EditUserPage({ params }: Props) {
     redirect("/dashboard");
   }
 
+  // Await params before accessing its properties
+  const { id } = await params;
+
   // Get user by ID
-  const result = await getUserById(params.id);
+  const result = await getUserById(id);
 
   if (!result.success || !result.user) {
     notFound();

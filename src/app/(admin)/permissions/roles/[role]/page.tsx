@@ -5,9 +5,9 @@ import { getRolePermissions } from '@/actions/admin/roleActions';
 import { RolePermissionsForm } from '@/components/dashboard/forms/RolePermissionsForm';
 
 interface RolePermissionsPageProps {
-  params: {
+  params: Promise<{
     role: string;
-  };
+  }>;
 }
 
 export default async function RolePermissionsPage({ params }: RolePermissionsPageProps) {
@@ -18,7 +18,8 @@ export default async function RolePermissionsPage({ params }: RolePermissionsPag
     redirect('/dashboard');
   }
   
-  const roleName = params.role;
+  // Await params before accessing its properties
+  const { role: roleName } = await params;
   
   // Validate role name
   const validRoles = ['USER', 'EDITOR', 'MANAGER', 'ADMIN'];
@@ -43,8 +44,8 @@ export default async function RolePermissionsPage({ params }: RolePermissionsPag
   return (
     <div className="container mx-auto py-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">{roleName} Role Permissions</h1>
-        <p className="text-gray-500 mt-2">
+        <h1 className="text-xl font-bold">{roleName} Role Permissions</h1>
+        <p className="text-gray-500 mt-2 bg-gray-100 p-2 rounded-sm">
           Select the permissions to assign to the {roleName.toLowerCase()} role.
         </p>
       </div>

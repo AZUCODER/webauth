@@ -8,14 +8,11 @@ import EditCategoryForm from "@/components/dashboard/forms/EditCategoryForm";
 
 
 interface PageProps {
-  params?: Promise<{ id: string }>;
+  params: Promise<{ id: string }>;
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export default async function EditCategoryPage({ params }: PageProps) {
-  // Resolve the params promise
-  const resolvedParams = await params;
-
   // Check for session first
   const session = await getSession();
   if (!session) {
@@ -27,11 +24,15 @@ export default async function EditCategoryPage({ params }: PageProps) {
     redirect("/dashboard");
   }
 
-  // Get category data using the resolved id
-  if (!resolvedParams?.id) {
+  // Await params before accessing its properties
+  const { id } = await params;
+  
+  // Get category data using the id
+  if (!id) {
     notFound();
   }
-  const category = await getCategoryById(resolvedParams.id);
+  
+  const category = await getCategoryById(id);
 
   // Handle not found
   if (!category) {
@@ -56,8 +57,8 @@ export default async function EditCategoryPage({ params }: PageProps) {
 
 // Optional: Add metadata
 export async function generateMetadata({ params }: PageProps) {
-  const resolvedParams = await params;
+  const { id } = await params;
   return {
-    title: `Edit Category ${resolvedParams?.id}`,
+    title: `Edit Category ${id || ''}`,
   };
 }

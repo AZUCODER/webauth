@@ -1,71 +1,32 @@
-import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
-    <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-      {/* admin main content section */}
-      <div className="flex w-[80vw] flex-col gap-4 p-4">
-       
-          <h1 className="text-2xl font-semibold mb-6"> Edit Profile </h1>
-
-          {/* Form skeleton */}
-          <div className="flex flex-col gap-6 w-1/2">
-            {/* Avatar loading skeleton */}
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-24" />
-              <div className="flex items-center gap-4">
-                <Skeleton className="h-10 w-32" />
-                <Skeleton className="h-20 w-20 rounded-full" />
-              </div>
-            </div>
-
-            {/* Bio loading skeleton */}
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-32 w-full" />
-            </div>
-
-            {/* Website loading skeleton */}
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-
-            {/* Location loading skeleton */}
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-
-            {/* Social Links loading skeleton */}
-            <Skeleton className="h-6 w-32 mt-2" />
-
-            {/* Twitter */}
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-
-            {/* GitHub */}
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-
-            {/* LinkedIn */}
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-
-            {/* Buttons */}
-            <div className="flex gap-4 mt-4">
-              <Skeleton className="h-10 w-24" />
-              <Skeleton className="h-10 w-24" />
-            </div>
+    <div className="container mx-auto py-6">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold mb-2">Your Profile</h1>
+        <p className="text-muted-foreground">
+          Update your personal information and preferences
+        </p>
+        <Separator className="my-4" />
+      </div>
+      
+      <div className="w-full space-y-6">
+        <div className="flex items-center justify-center p-12">
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+            <p className="mt-4 text-lg text-muted-foreground">Loading your profile...</p>
           </div>
+        </div>
+        
+        <div className="space-y-4">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
       </div>
     </div>
   );

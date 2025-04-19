@@ -3,51 +3,42 @@
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Separator } from "@/components/ui/separator";
 
-export default function Error({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
+interface ErrorProps {
+  error: Error;
   reset: () => void;
-}) {
-  const router = useRouter();
+}
 
+export default function ProfileError({ error, reset }: ErrorProps) {
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error("Profile Error:", error);
+    console.error("Profile page error:", error);
   }, [error]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] p-6">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-md p-8 border border-red-100">
-        <div className="flex flex-col items-center text-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center">
-            <AlertCircle className="h-6 w-6 text-red-500" />
-          </div>
-          <h2 className="text-2xl font-semibold text-gray-800">
-           Something unknown happened during the processing, please try again later!
-          </h2>
-
-          <p className="text-gray-600 mt-1">
-            {error.message ||
-              "Something went wrong while updating your profile."}
+    <div className="container mx-auto py-6">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold mb-2">Your Profile</h1>
+        <p className="text-muted-foreground">
+          Update your personal information and preferences
+        </p>
+        <Separator className="my-4" />
+      </div>
+      
+      <div className="w-full flex items-center justify-center">
+        <div className="bg-destructive/10 rounded-md p-8 max-w-md w-full text-center">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
+          <p className="text-muted-foreground mb-6">
+            {error.message || 'Failed to load your profile information'}
           </p>
-
-          {error.digest && (
-            <p className="text-xs text-gray-500 mt-2">
-              Error code: {error.digest}
-            </p>
-          )}
-
-          <div className="flex gap-4 mt-6">
-            <Button onClick={() => reset()} variant="default">
-              Retry
+          <div className="flex gap-4 justify-center">
+            <Button variant="outline" onClick={() => window.location.href = '/dashboard'}>
+              Go to Dashboard
             </Button>
-
-            <Button onClick={() => router.push("/dashboard")} variant="outline">
-              Back to Dashboard
+            <Button onClick={() => reset()}>
+              Try again
             </Button>
           </div>
         </div>

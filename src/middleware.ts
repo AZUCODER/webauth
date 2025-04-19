@@ -14,13 +14,26 @@ const PROTECTED_ROUTES = [
   '/post-categories/add',
   '/post-categories/edit',
   '/post-categories/view',
+  // Additional admin routes
+  '/users',
+  '/permissions',
+  '/audit-logs',
+  // Ensure all route variations are protected
+  '/users/create',
+  '/users/edit',
+  '/posts/edit',
+  '/permissions/roles',
+  '/permissions/create',
+  '/permissions/edit',
 ]
 
 // Define routes that are only accessible for non-authenticated users
 const AUTH_ROUTES = [
   '/login',
   '/register',
-  '/forgot-password'
+  '/forgot-password',
+  '/reset-password',
+  '/verify-email'
 ]
 
 export async function middleware(request: NextRequest) {

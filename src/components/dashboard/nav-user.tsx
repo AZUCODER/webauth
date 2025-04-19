@@ -57,7 +57,7 @@ export function NavUser() {
         .map((n) => n[0])
         .join("")
         .toUpperCase()
-    : "U";
+    : "/avatars/avatar.jpg";
 
   return (
     <SidebarMenu>
