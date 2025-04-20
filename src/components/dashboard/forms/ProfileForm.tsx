@@ -399,7 +399,7 @@ export default function ProfileForm() {
             </div>
 
             {/* Required field notice */}
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-gray-500 mb-2">
               Fields marked with <span className="text-red-500">*</span> are
               required
             </div>

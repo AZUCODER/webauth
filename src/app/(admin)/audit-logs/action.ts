@@ -23,11 +23,12 @@ export function useAuditLogFilters() {
   };
 
   const setPage = (page: number) => {
+    // Preserve all existing query params, just update the page
     router.push(`${pathname}?${createQueryString({ page: page.toString() })}`);
   };
 
   const setFilters = (filters: Record<string, string>) => {
-    // Reset to page 1 when filters change
+    // Create a params object with all the filters and reset page to 1
     const params: Record<string, string | null> = { 
       page: '1',
       ...filters
@@ -35,7 +36,7 @@ export function useAuditLogFilters() {
     
     // Remove empty filters
     Object.keys(params).forEach(key => {
-      if (!params[key]) {
+      if (params[key] === '' || params[key] === 'all') {
         params[key] = null;
       }
     });
@@ -45,6 +46,13 @@ export function useAuditLogFilters() {
 
   return {
     setPage,
-    setFilters
+    setFilters,
+    getCurrentFilters: () => {
+      const current: Record<string, string> = {};
+      searchParams.forEach((value, key) => {
+        current[key] = value;
+      });
+      return current;
+    }
   };
 } 

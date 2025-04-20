@@ -57,6 +57,11 @@ interface AuditLogTableProps {
     totalPages: number;
     totalItems: number;
   };
+  currentFilters?: {
+    search: string;
+    action: string;
+    resource: string;
+  };
   onPageChange?: (page: number) => void;
   onFilterChange?: (filters: any) => void;
 }
@@ -64,31 +69,43 @@ interface AuditLogTableProps {
 export function AuditLogTable({
   auditLogs,
   pagination,
+  currentFilters,
   onPageChange,
   onFilterChange,
 }: AuditLogTableProps) {
+  // Initialize filters from URL parameters or defaults
   const [filters, setFilters] = useState({
-    action: "",
-    resource: "",
-    search: "",
+    action: currentFilters?.action || "all",
+    resource: currentFilters?.resource || "all",
+    search: currentFilters?.search || "",
   });
 
+  // Sync filters with URL parameters when they change
   useEffect(() => {
-    // Initialize select components with "all" for empty values
-    setFilters(prev => ({
-      ...prev,
-      action: prev.action || "all",
-      resource: prev.resource || "all"
-    }));
-  }, []);
+    if (currentFilters) {
+      setFilters({
+        action: currentFilters.action || "all",
+        resource: currentFilters.resource || "all",
+        search: currentFilters.search || "",
+      });
+    }
+  }, [currentFilters]);
 
   const handleFilterChange = (key: string, value: string) => {
-    // Convert "all" value to empty string for filtering
-    const filterValue = value === "all" ? "" : value;
-    
-    const newFilters = { ...filters, [key]: filterValue };
+    // Update local state
+    const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
-    onFilterChange?.(newFilters);
+    
+    // Convert "all" value to empty string for API filtering
+    const apiFilters = { ...newFilters };
+    Object.keys(apiFilters).forEach(k => {
+      if (apiFilters[k] === "all") {
+        apiFilters[k] = "";
+      }
+    });
+    
+    // Call parent handler with updated filters
+    onFilterChange?.(apiFilters);
   };
 
   const getActionBadgeColor = (action: string) => {

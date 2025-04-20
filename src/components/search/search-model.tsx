@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 export function SearchModel() {
   return (
     <div className="ml-auto relative max-w-md">
-      <div className="flex items-center border rounded-md px-3 py-1">
+      <div className="flex items-center  rounded-md px-3 py-1">
         <Search className="h-4 w-4 text-muted-foreground mr-2" />
         <Input 
           type="search"

@@ -1,6 +1,6 @@
 // src/lib/authorization/permissions.ts
 
-import { Role, User } from '@prisma/client'; 
+import { Role} from '@prisma/client'; 
 import { prisma } from '@/lib/prisma';
 import { cache } from 'react';
 import { getSession } from '@/lib/session/manager'

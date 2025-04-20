@@ -135,13 +135,13 @@ export function PermissionTable({ permissions }: PermissionTableProps) {
             ))}
           </select>
         </div>
-        <Button onClick={() => router.push('/permissions/create')}>
+        <Button variant="outline" onClick={() => router.push('/permissions/create')}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Add Permission
         </Button>
       </div>
       
-      <div className="rounded-md border">
+      <div className="rounded-sm border">
         <Table>
           <TableHeader className='bg-gray-100'>
             <TableRow>

@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { AlertTriangle } from 'lucide-react';
 import { updateRolePermissions } from '@/actions/admin/roleActions';
 
 interface Permission {
@@ -19,12 +20,20 @@ interface RolePermissionsFormProps {
   role: string;
   permissions: Permission[];
   initialPermissions: string[];
+  userRole?: string;
 }
 
-export function RolePermissionsForm({ role, permissions, initialPermissions }: RolePermissionsFormProps) {
+export function RolePermissionsForm({ 
+  role, 
+  permissions, 
+  initialPermissions,
+  userRole = 'USER' 
+}: RolePermissionsFormProps) {
   const router = useRouter();
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>(initialPermissions);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [criticalPermissions, setCriticalPermissions] = useState<string[]>([]);
 
   // Group permissions by resource
   const groupedPermissions = permissions.reduce((acc, permission) => {
@@ -34,6 +43,34 @@ export function RolePermissionsForm({ role, permissions, initialPermissions }: R
     acc[permission.resource].push(permission);
     return acc;
   }, {} as Record<string, Permission[]>);
+
+  // Set up critical permissions that should be warned about when removed
+  useEffect(() => {
+    // Define permissions that are critical for each role
+    const roleCriticalPermissions: Record<string, string[]> = {
+      'ADMIN': [], // Admins have all permissions implicitly
+      'MANAGER': ['user:view', 'user:create', 'role:view', 'permission:view'],
+      'EDITOR': ['post:create', 'post:edit', 'post:delete', 'post:publish'],
+      'USER': ['profile:view', 'profile:edit']
+    };
+    
+    // Find the permission IDs for the critical permissions
+    const criticalPermissionIds = permissions
+      .filter(p => (roleCriticalPermissions[role] || []).includes(p.name))
+      .map(p => p.id);
+    
+    setCriticalPermissions(criticalPermissionIds);
+  }, [role, permissions]);
+
+  // Check for changes
+  useEffect(() => {
+    const hasPermissionChanges = 
+      initialPermissions.length !== selectedPermissions.length || 
+      initialPermissions.some(id => !selectedPermissions.includes(id)) ||
+      selectedPermissions.some(id => !initialPermissions.includes(id));
+    
+    setHasChanges(hasPermissionChanges);
+  }, [selectedPermissions, initialPermissions]);
 
   const handlePermissionToggle = (permissionId: string) => {
     setSelectedPermissions(prev => {
@@ -67,6 +104,29 @@ export function RolePermissionsForm({ role, permissions, initialPermissions }: R
   };
 
   const handleSubmit = async () => {
+    // Check for critical permissions being removed
+    const removedCriticalPermissions = criticalPermissions.filter(
+      id => initialPermissions.includes(id) && !selectedPermissions.includes(id)
+    );
+    
+    if (removedCriticalPermissions.length > 0 && role !== 'ADMIN') {
+      // Get names of critical permissions being removed
+      const criticalPermissionNames = permissions
+        .filter(p => removedCriticalPermissions.includes(p.id))
+        .map(p => p.name);
+      
+      // Show warning
+      const confirmed = window.confirm(
+        `Warning: You are removing critical permissions for the ${role} role: ${criticalPermissionNames.join(', ')}.\n\n` +
+        `This may affect the ability of users with this role to perform essential functions.\n\n` + 
+        `Are you sure you want to continue?`
+      );
+      
+      if (!confirmed) {
+        return;
+      }
+    }
+    
     setIsSubmitting(true);
     try {
       const result = await updateRolePermissions(role, selectedPermissions);
@@ -85,8 +145,26 @@ export function RolePermissionsForm({ role, permissions, initialPermissions }: R
     }
   };
 
+  // Check if user can edit permissions based on role
+  const canEdit = userRole === 'ADMIN' || (role !== 'ADMIN');
+  const isEditingAdminRole = role === 'ADMIN';
+
   return (
     <div className="space-y-6">
+      {!canEdit && (
+        <div className="p-4 mb-4 bg-red-50 text-red-700 border border-red-200 rounded-md flex items-center">
+          <AlertTriangle className="mr-2 h-5 w-5" />
+          <span>You don't have permission to edit these role permissions.</span>
+        </div>
+      )}
+      
+      {isEditingAdminRole && userRole === 'ADMIN' && (
+        <div className="p-4 mb-4 bg-amber-50 text-amber-700 border border-amber-200 rounded-md flex items-center">
+          <AlertTriangle className="mr-2 h-5 w-5" />
+          <span>Admin users have implicit access to all system features. Changes here are for documentation purposes only.</span>
+        </div>
+      )}
+      
       {Object.entries(groupedPermissions).map(([resource, resourcePermissions]) => {
         const resourcePermissionIds = resourcePermissions.map(p => p.id);
         const allSelected = resourcePermissionIds.every(id => selectedPermissions.includes(id));
@@ -99,31 +177,43 @@ export function RolePermissionsForm({ role, permissions, initialPermissions }: R
                 id={`resource-${resource}`}
                 checked={allSelected}
                 onCheckedChange={() => handleResourceToggle(resource, resourcePermissions)}
+                disabled={!canEdit}
               />
               <label 
                 htmlFor={`resource-${resource}`}
-                className={`ml-2 text-lg font-medium cursor-pointer ${someSelected && !allSelected ? "text-gray-500" : ""}`}
+                className={`ml-2 text-lg font-medium cursor-pointer ${!canEdit ? "text-gray-400" : ""} ${someSelected && !allSelected ? "text-gray-500" : ""}`}
               >
                 {resource} {someSelected && !allSelected ? "(Partial)" : ""}
               </label>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2 pl-6">
-              {resourcePermissions.map((permission) => (
-                <div key={permission.id} className="flex items-start space-x-2">
-                  <Checkbox 
-                    id={permission.id}
-                    checked={selectedPermissions.includes(permission.id)}
-                    onCheckedChange={() => handlePermissionToggle(permission.id)}
-                  />
-                  <div>
-                    <label htmlFor={permission.id} className="font-medium cursor-pointer">
-                      {permission.name}
-                    </label>
-                    <p className="text-sm text-gray-500">{permission.description}</p>
+              {resourcePermissions.map((permission) => {
+                const isSelected = selectedPermissions.includes(permission.id);
+                const isCritical = criticalPermissions.includes(permission.id);
+                
+                return (
+                  <div key={permission.id} className="flex items-start space-x-2">
+                    <Checkbox 
+                      id={permission.id}
+                      checked={isSelected}
+                      onCheckedChange={() => handlePermissionToggle(permission.id)}
+                      disabled={!canEdit}
+                    />
+                    <div>
+                      <label 
+                        htmlFor={permission.id} 
+                        className={`font-medium cursor-pointer ${!canEdit ? "text-gray-400" : ""} ${isCritical ? "text-blue-600" : ""}`}
+                      >
+                        {permission.name} {isCritical && <span className="text-xs text-blue-600">(critical)</span>}
+                      </label>
+                      <p className={`text-sm ${!canEdit ? "text-gray-400" : "text-gray-500"}`}>
+                        {permission.description}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </Card>
         );
@@ -139,7 +229,8 @@ export function RolePermissionsForm({ role, permissions, initialPermissions }: R
         </Button>
         <Button 
           onClick={handleSubmit}
-          disabled={isSubmitting}
+          disabled={isSubmitting || !canEdit || !hasChanges}
+          variant={!hasChanges ? "outline" : "default"}
         >
           {isSubmitting ? 'Saving...' : 'Save Changes'}
         </Button>

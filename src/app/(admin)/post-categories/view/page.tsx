@@ -42,13 +42,13 @@ export default async function CategoriesPage({
         </div>
         <div className="flex gap-2">
           <Link href="/post-categories/add">
-          <Button className="flex items-center gap-1" size="lg">
+          <Button className="flex items-center gap-1" size="sm">
             <PlusCircle className="h-4 w-4" />
             Add Category
           </Button>
         </Link>
         <Link href="/posts/add">
-          <Button className="flex items-center gap-1" size="lg" variant="ghost">
+          <Button className="flex items-center gap-1" size="sm" variant="ghost">
             <PlusCircle className="h-4 w-4" />
             Add Post
           </Button>

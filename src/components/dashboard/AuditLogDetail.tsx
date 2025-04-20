@@ -103,7 +103,7 @@ export function AuditLogDetail({ auditLog }: AuditLogDetailProps) {
             <CardTitle>Basic Information</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="flex justify-between flex-col gap-4">
               <div className="flex gap-3">
                 <IconClockHour4 className="h-5 w-5 text-gray-500 mt-0.5" />
                 <div className="flex-1">

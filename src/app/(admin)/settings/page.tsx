@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/session/manager';
 import { getSettings, getSettingCategories } from '@/actions/admin/settingsActions';
 import { Button } from '@/components/ui/button';
-import { IconPlus } from '@tabler/icons-react';
+import { PlusCircle } from "lucide-react";
 import Link from 'next/link';
 import { SettingsClient } from './client';
 
@@ -62,28 +62,28 @@ export default async function SettingsPage({ searchParams }: PageProps) {
       <div className="mb-6 flex justify-between items-center">
         <div>
           <h1 className="text-xl font-bold">Site Settings</h1>
-          <p className="text-gray-500 mt-2 bg-gray-100 p-2 rounded-sm">
+          <p className="text-accent-foreground/60">
             Manage application settings and configuration options
           </p>
         </div>
-        
+
         <Button asChild>
           <Link href="/settings/new" className="flex items-center gap-1">
-            <IconPlus className="h-4 w-4" />
+            <PlusCircle />
             New Setting
           </Link>
         </Button>
       </div>
 
-      <div className="bg-card rounded-sm shadow-md">
+      <div className="bg-card rounded-sm shadow">
         <div className="p-6">
-          <SettingsClient 
-            settings={settings} 
+          <SettingsClient
+            settings={settings}
             categories={categories}
             pagination={pagination}
             initialFilters={{
-              search: resolvedParams?.search || '',
-              category: resolvedParams?.category || '',
+              search: resolvedParams?.search || "",
+              category: resolvedParams?.category || "",
             }}
           />
         </div>

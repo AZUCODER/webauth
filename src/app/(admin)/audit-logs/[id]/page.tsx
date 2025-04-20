@@ -31,7 +31,7 @@ export default async function AuditLogDetailPage({ params }: PageProps) {
     <div className="container mx-auto py-6">
       <div className="mb-6">
         <h1 className="text-xl font-bold">Audit Log Details</h1>
-        <p className="text-gray-500 mt-2 bg-gray-100 p-2 rounded-sm">
+        <p className="text-accent-foreground/60">
           Detailed information about the selected audit log event.
         </p>
       </div>

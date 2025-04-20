@@ -12,9 +12,8 @@ import {
   IconCircles,
   IconSettings,
   IconHistory,
-  IconAdjustments,
+  IconList,
 } from "@tabler/icons-react";
-
 import { NavApps } from "@/components/dashboard/nav-apps";
 import { NavMain } from "@/components/dashboard/nav-main";
 import { NavAdmin } from "@/components/dashboard/nav-admin";
@@ -159,7 +158,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <Link href="#">
+              <Link href="/dashboard">
+                <IconList />
                 <span className="text-base font-semibold">Admin Panel</span>
               </Link>
             </SidebarMenuButton>

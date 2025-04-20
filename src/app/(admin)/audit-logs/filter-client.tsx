@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuditLogFilters } from './action';
 import { AuditLogTable } from '@/components/dashboard/tables/AuditLogTable';
 
@@ -17,7 +17,8 @@ export function AuditLogFilterClient({
   children, 
   initialFilters 
 }: AuditLogFilterClientProps) {
-  const { setPage, setFilters } = useAuditLogFilters();
+  const { setPage, setFilters, getCurrentFilters } = useAuditLogFilters();
+  const [mounted, setMounted] = useState(false);
 
   // Process initial filters for the UI
   const processedFilters = {
@@ -25,6 +26,11 @@ export function AuditLogFilterClient({
     action: initialFilters.action || "all",
     resource: initialFilters.resource || "all"
   };
+
+  // This ensures hydration works correctly
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Make sure children is an AuditLogTable component
   if (React.isValidElement(children) && children.type === AuditLogTable) {
@@ -36,11 +42,19 @@ export function AuditLogFilterClient({
       <AuditLogTable
         auditLogs={auditLogs}
         pagination={pagination}
+        currentFilters={processedFilters}
         onPageChange={(page: number) => {
           setPage(page);
         }}
         onFilterChange={(filters: Record<string, string>) => {
-          setFilters(filters);
+          // Keep existing query params except those being explicitly set
+          const currentFilters = getCurrentFilters();
+          const newFilters = { ...currentFilters, ...filters };
+          
+          // Remove page from filters as it's handled separately
+          delete newFilters.page;
+          
+          setFilters(newFilters);
         }}
       />
     );
