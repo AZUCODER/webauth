@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Permission, Role } from '@prisma/client';
+import { Role } from '@prisma/client';
 
 // Basic permission interface
 export interface PermissionData {

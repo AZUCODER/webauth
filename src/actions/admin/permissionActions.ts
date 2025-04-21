@@ -5,15 +5,10 @@ import { getSession } from '@/lib/session/manager';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { Permission, Role } from '@prisma/client';
-import { logAuditEvent, safeStringify } from '@/lib/audit/auditLogger';
+import { logAuditEvent } from '@/lib/audit/auditLogger';
+import { PermissionSchema } from '@/types/permission';
 
-// Permission validation schema
-const PermissionSchema = z.object({
-  name: z.string().min(3).max(100),
-  description: z.string().optional(),
-  resource: z.string().min(1),
-  action: z.string().min(1),
-});
+
 
 // Return type for permission actions
 export type PermissionActionReturn = {
@@ -519,8 +514,19 @@ export async function getPaginatedPermissions(
     // Calculate skip value for pagination
     const skip = (page - 1) * pageSize;
 
+    // Define Prisma filter type for permissions
+    type PermissionWhereInput = {
+      OR?: Array<{
+        name?: { contains: string; mode: 'insensitive' };
+        description?: { contains: string; mode: 'insensitive' };
+        resource?: { contains: string; mode: 'insensitive' };
+        action?: { contains: string; mode: 'insensitive' };
+      }>;
+      resource?: string;
+    };
+
     // Create the where condition based on search and filters
-    const where: any = {};
+    const where: PermissionWhereInput = {};
     
     if (searchTerm) {
       where.OR = [

@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { Role } from '@prisma/client';
-import { UserSchema } from '@/types/user';
+import { UserSchema, UserRole } from '@/types/user';
 import { hasPermission } from '@/lib/authorization/permissions';
 
 
@@ -129,7 +129,7 @@ export async function createUser(formData: FormData): Promise<UserActionReturn> 
     const email = formData.get('email') as string
     const name = formData.get('username') as string
     const password = formData.get('password') as string
-    const role = formData.get('role') as Role
+    const role = formData.get('role') as UserRole
 
     // Validate input data
     const validatedData = UserSchema.parse({
@@ -157,7 +157,7 @@ export async function createUser(formData: FormData): Promise<UserActionReturn> 
         email: validatedData.email,
         name: validatedData.name,
         password: hashedPassword,
-        role: validatedData.role,
+        role: validatedData.role as Role,
       },
       select: {
         id: true,
@@ -201,7 +201,7 @@ export async function updateUser(id: string, formData: FormData): Promise<UserAc
     }
 
     // Non-admin users can't change roles even for their own account
-    const role = formData.get('role') as Role;
+    const role = formData.get('role') as UserRole;
     if (role && session.role !== 'ADMIN' && role !== session.role) {
       return { success: false, error: 'You do not have permission to change user roles' }
     }
@@ -246,7 +246,7 @@ export async function updateUser(id: string, formData: FormData): Promise<UserAc
     } = {
       email: validatedData.email,
       name: validatedData.name,
-      role: validatedData.role,
+      role: validatedData.role as Role,
     }
 
     // Only update password if provided

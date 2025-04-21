@@ -53,36 +53,19 @@ async function main() {
     // Define role permissions mapping
     const rolePermissions = {
         [Role.USER]: [
-            'posts:read',
-            'profile:read',
-            'profile:update',
-            'post-category:read',
-            'post-category:view'
-        ],
-        [Role.EDITOR]: [
-            'posts:create',
-            'posts:read',
-            'posts:update',
-            'posts:delete',
-            'post-category:read',
-            'post-category:view',
-            'profile:read',
-            'profile:update'
-        ],
-        [Role.MANAGER]: [
+            // Post permissions - Users can create and manage their own posts
             'posts:create',
             'posts:read',
             'posts:update',
             'posts:delete',
             'posts:publish',
+            // Category permissions - View only
             'post-category:read',
             'post-category:view',
-            'post-category:create',
-            'post-category:update',
-            'post-category:delete',
-            'users:read',
+            // Profile permissions
             'profile:read',
             'profile:update',
+            // Settings - read only
             'settings:read'
         ],
         [Role.ADMIN]: [

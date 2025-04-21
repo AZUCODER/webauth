@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/session/manager';
 import prisma from '@/lib/prisma';
 import { logAuditEvent } from '@/lib/audit/auditLogger';
+import { Role } from '@prisma/client';
 
 // Get permissions for a specific role
 export async function getRolePermissions(roleName: string) {
@@ -19,7 +20,7 @@ export async function getRolePermissions(roleName: string) {
 
     // Get permissions for the role
     const rolePermissions = await prisma.rolePermission.findMany({
-      where: { role: roleName as any },
+      where: { role: roleName as Role },
       include: {
         permission: true,
       },
@@ -66,7 +67,7 @@ export async function updateRolePermissions(
 
     // Verify roleName
     // Check against valid roles directly
-    const validRoles = ['USER', 'EDITOR', 'MANAGER', 'ADMIN'];
+    const validRoles = ['USER', 'ADMIN'];
     if (!validRoles.includes(roleName)) {
       return {
         success: false,
@@ -76,7 +77,7 @@ export async function updateRolePermissions(
 
     // Get existing role permissions for audit log
     const existingRolePermissions = await prisma.rolePermission.findMany({
-      where: { role: roleName as any },
+      where: { role: roleName as Role },
       include: {
         permission: true,
       },
@@ -105,13 +106,13 @@ export async function updateRolePermissions(
     await prisma.$transaction([
       prisma.rolePermission.deleteMany({
         where: {
-          role: roleName as any,
+          role: roleName as Role,
         },
       }),
       ...permissionIds.map(permissionId =>
         prisma.rolePermission.create({
           data: {
-            role: roleName as any,
+            role: roleName as Role,
             permissionId,
           },
         })

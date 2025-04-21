@@ -10,6 +10,7 @@ import { IconArrowLeft } from '@tabler/icons-react';
 import Link from 'next/link';
 import { createSetting, getSettingCategories } from '@/actions/admin/settingsActions';
 import { useEffect } from 'react';
+import { SettingFormData } from '@/types/setting';
 
 export default function NewSettingPage() {
   const router = useRouter();
@@ -35,7 +36,7 @@ export default function NewSettingPage() {
     loadCategories();
   }, []);
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: SettingFormData) => {
     setIsSubmitting(true);
     try {
       const result = await createSetting(data);

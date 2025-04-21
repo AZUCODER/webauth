@@ -2,696 +2,313 @@
 
 ## Introduction
 
-This guide provides best practices for implementing secure routes and API endpoints in our Next.js application, building on our existing authentication and authorization infrastructure.
+This guide provides comprehensive documentation for implementing secure routes and API endpoints in our Next.js application, explaining our current middleware-based authentication and authorization system.
 
-## Route Protection
+## Route Protection Overview
 
-### Client-Side Route Protection
+Our application uses a middleware-based approach to protect routes based on:
+1. Authentication status (is the user logged in?)
+2. Role-based access control (does the user have the right role?)
+3. Route type categorization (public vs. protected routes)
 
-While server-side protection is critical, client-side route guards improve user experience by preventing navigation to unauthorized routes:
+## Middleware Implementation
 
-```tsx
-// src/components/ProtectedRoute.tsx
-"use client";
+### Route Categories
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { checkSessionStatus } from "@/lib/session/client";
-import { Spinner } from "@/components/ui/spinner";
-
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-  requiredPermissions?: string[];
-}
-
-export function ProtectedRoute({ 
-  children, 
-  requiredPermissions = [] 
-}: ProtectedRouteProps) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [authorized, setAuthorized] = useState(false);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const { isValid } = await checkSessionStatus();
-        
-        if (!isValid) {
-          router.push('/login');
-          return;
-        }
-        
-        if (requiredPermissions.length) {
-          const hasRequiredPermissions = await checkPermissions(requiredPermissions);
-          if (!hasRequiredPermissions) {
-            router.push('/unauthorized');
-            return;
-          }
-        }
-        
-        setAuthorized(true);
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        router.push('/login');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    checkAuth();
-  }, [router, requiredPermissions]);
-
-  if (loading) {
-    return <div className="flex h-screen items-center justify-center">
-      <Spinner size="lg" />
-    </div>;
-  }
-  
-  return authorized ? <>{children}</> : null;
-}
-
-// Client-side permission check
-async function checkPermissions(permissions: string[]): Promise<boolean> {
-  try {
-    const response = await fetch('/api/auth/check-permissions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ permissions }),
-    });
-    
-    if (!response.ok) return false;
-    
-    const data = await response.json();
-    return data.hasPermission;
-  } catch (error) {
-    console.error('Permission check failed:', error);
-    return false;
-  }
-}
-```
-
-### Server-Side Route Protection (Middleware)
-
-Our middleware provides protection for all routes, but here are some enhancements:
+The middleware categorizes routes into several types:
 
 ```typescript
-// src/middleware.ts - Enhancing existing middleware
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-import { SESSION_CONSTANTS } from '@/lib/session/constants'
+// Public routes - accessible without authentication
+const publicRoutes = [
+  '/login',
+  '/register',
+  '/verify-email',
+  '/reset-password',
+];
 
-// Define routes with required permissions
-const PERMISSION_REQUIRED_ROUTES: Record<string, string[]> = {
-  '/admin': ['admin:access'],
-  '/dashboard': ['dashboard:access'],
-  '/posts/add': ['posts:create'],
-  '/posts/edit': ['posts:update'],
-  '/posts/delete': ['posts:delete'],
-  '/users': ['users:list'],
-  '/settings': ['settings:access'],
-}
+// Dashboard routes - for regular authenticated users
+const dashboardRoutes = [
+  '/dashboard',
+  '/profile',
+  '/files',
+  '/account',
+];
 
+// Admin-only routes - require ADMIN role
+const adminRoutes = [
+  '/admin',
+  '/settings',
+  '/permissions',
+];
+
+// Public assets - accessible without authentication
+const publicAssets = [
+  '/placeholder.svg',
+  '/images/',
+  '/assets/',
+  '/logo.svg',
+  '/favicon.ico'
+];
+```
+
+### Authentication Flow
+
+The middleware implements the following authentication flow:
+
+1. Skip middleware for static assets
+2. Handle configured redirects
+3. Allow access to public routes without authentication
+4. For protected routes:
+   - Check for session cookie
+   - Verify JWT token validity
+   - Check token expiration
+   - Verify role-based access for admin routes
+   - Grant access if all checks pass
+
+### Implementation Details
+
+```typescript
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const { pathname } = request.nextUrl;
   
-  // Check if user has session cookie
-  const hasSessionCookie = request.cookies.has(SESSION_CONSTANTS.COOKIE_NAME)
+  // Use consistent response object
+  let response = NextResponse.next();
   
-  // Handle protected routes (redirect to login if no session)
-  if (PROTECTED_ROUTES.some(route => pathname.startsWith(route))) {
-    if (!hasSessionCookie) {
-      const loginUrl = new URL('/login', request.url)
-      loginUrl.searchParams.set('callbackUrl', pathname)
-      return NextResponse.redirect(loginUrl)
-    }
-    
-    // Additional security header for protected routes
-    const response = NextResponse.next()
-    response.headers.set('X-Content-Type-Options', 'nosniff')
-    response.headers.set('X-XSS-Protection', '1; mode=block')
-    return response
+  // Skip middleware for static assets
+  if (isPublicAsset(pathname)) {
+    return response;
   }
   
-  // Handle auth routes (redirect to dashboard if already logged in)
-  if (AUTH_ROUTES.some(route => pathname.startsWith(route))) {
-    if (hasSessionCookie) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+  // Handle redirects first
+  for (const redirect of redirects) {
+    if (pathname === redirect.source) {
+      const url = request.nextUrl.clone();
+      url.pathname = redirect.destination;
+      return NextResponse.redirect(url);
     }
   }
   
-  // Add security headers to all responses
-  const response = NextResponse.next()
-  if (!process.env.NODE_ENV || process.env.NODE_ENV === 'production') {
-    response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+  // Skip auth checks for public routes
+  if (isPublicRoute(pathname)) {
+    return response;
+  }
+
+  // Get session cookie
+  const sessionCookie = request.cookies.get(SESSION_CONSTANTS.COOKIE_NAME);
+  
+  // Redirect to login if no session cookie
+  if (!sessionCookie) {
+    return redirectToLogin(request);
   }
   
-  return response
-}
-```
-
-## API Endpoint Security
-
-### Secure API Route Pattern
-
-For API routes in Next.js, use this secure pattern:
-
-```typescript
-// src/app/api/protected-resource/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/session/manager';
-import { hasPermission } from '@/lib/authorization/permissions';
-import prisma from '@/lib/prisma';
-import { ZodSchema } from 'zod';
-
-// Secure handler wrapper
-async function withAuth<T>(
-  request: NextRequest,
-  handler: (session: SessionUser, data: T) => Promise<NextResponse>,
-  options: {
-    requiredPermission?: string;
-    schema?: ZodSchema<T>;
-  } = {}
-) {
   try {
-    // 1. Check authentication
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // 2. Check authorization (if permission specified)
-    if (options.requiredPermission) {
-      const permitted = await hasPermission(options.requiredPermission);
-      if (!permitted) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
-    }
+    // Verify JWT token
+    const encoder = new TextEncoder();
+    const secretKey = process.env.JWT_SECRET || 'fallback-secret-for-development';
     
-    // 3. Validate input data (if schema provided)
-    let data: any = {};
-    if (options.schema) {
-      try {
-        // For GET requests
-        if (request.method === 'GET') {
-          const url = new URL(request.url);
-          const queryData = Object.fromEntries(url.searchParams);
-          data = options.schema.parse(queryData);
-        } 
-        // For other methods with body
-        else {
-          const body = await request.json();
-          data = options.schema.parse(body);
-        }
-      } catch (error) {
-        return NextResponse.json(
-          { error: 'Invalid input data', details: error },
-          { status: 400 }
-        );
-      }
-    }
-
-    // 4. Execute handler with valid session and data
-    return await handler(session, data);
-    
-  } catch (error) {
-    console.error(`API error:`, error);
-    
-    // 5. Standardized error handling
-    return NextResponse.json(
-      { 
-        error: 'Server error',
-        message: process.env.NODE_ENV === 'development' 
-          ? error.message 
-          : 'Something went wrong' 
-      },
-      { status: 500 }
+    const { payload } = await jwtVerify(
+      sessionCookie.value,
+      encoder.encode(secretKey)
     );
+    
+    // Check token expiration
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp && payload.exp < now) {
+      return redirectToLogin(request);
+    }
+    
+    // Role-based access control for admin routes
+    if (isAdminRoute(pathname) && payload.role !== 'ADMIN') {
+      // Redirect non-admin users to dashboard
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      return NextResponse.redirect(url);
+    }
+    
+    // Grant access if all checks pass
+    return response;
+  } catch (error) {
+    // Handle JWT verification failure
+    return redirectToLogin(request);
   }
 }
+```
 
-// Example: GET handler using the secure pattern
-export async function GET(request: NextRequest) {
-  return withAuth(
-    request,
-    async (session) => {
-      // Your secure business logic here
-      const items = await prisma.secureResource.findMany({
-        where: { userId: session.userId }
-      });
-      
-      return NextResponse.json({ items });
-    },
-    { requiredPermission: 'resources:read' }
-  );
-}
+## Role-Based Access Control
 
-// Example: POST handler with data validation
-export async function POST(request: NextRequest) {
-  const schema = z.object({
-    name: z.string().min(3),
-    description: z.string().optional(),
-    status: z.enum(['ACTIVE', 'INACTIVE'])
+Our application implements a dual-layer approach to authorization:
+
+### 1. Role-Based Routes (Middleware Level)
+
+The middleware enforces role-based access at the route level:
+- All users must authenticate to access protected routes
+- Only users with the `ADMIN` role can access admin routes
+- Regular users with the `USER` role are redirected to the dashboard if they attempt to access admin routes
+
+### 2. Permission-Based Actions (Application Level)
+
+For more granular control, especially within components and API routes, we use permission-based authorization:
+
+```typescript
+// Example of permission-based check in an API route
+export async function POST(req: NextRequest) {
+  return withPermission(req, 'posts:create', async () => {
+    // Handler implementation
+    const post = await createPost(data);
+    return NextResponse.json({ post }, { status: 201 });
   });
+}
+```
+
+## Session Management
+
+Our authentication system uses JWT-based sessions stored in cookies:
+
+1. **Session Creation**: Upon successful login, a JWT token is generated and stored in a secure cookie
+2. **Session Verification**: The middleware verifies the JWT token on each request to protected routes
+3. **Session Expiration**: Tokens include an expiration time to enforce re-authentication
+4. **Session Refreshing**: Tokens are automatically refreshed when approaching expiration
+5. **Session Termination**: Logging out removes the session cookie
+
+## Security Best Practices
+
+### Cookie Security
+
+Session cookies are configured with security-focused options:
+
+```typescript
+export const DEFAULT_SESSION_OPTIONS: SessionOptions = {
+  maxAge: SESSION_CONSTANTS.MAX_AGE,
+  secure: process.env.NODE_ENV === 'production',
+  path: '/',
+  sameSite: 'strict',
+} as const;
+```
+
+### JWT Token Security
+
+JWT tokens include:
+- User identifier
+- Username and email
+- Role information
+- Issue time (iat)
+- Expiration time (exp)
+
+### Redirect Management
+
+When redirecting unauthenticated users to login, we preserve their intended destination:
+
+```typescript
+function redirectToLogin(request: NextRequest): NextResponse {
+  const url = request.nextUrl.clone();
+  url.pathname = '/login';
+  url.searchParams.set('callbackUrl', encodeURIComponent(request.nextUrl.pathname));
   
-  return withAuth(
-    request,
-    async (session, data) => {
-      // Create resource with validated data
-      const newItem = await prisma.secureResource.create({
-        data: {
-          ...data,
-          userId: session.userId
-        }
-      });
-      
-      // Log action
-      await prisma.auditLog.create({
-        data: {
-          userId: session.userId,
-          action: 'CREATE',
-          resource: 'SecureResource',
-          resourceId: newItem.id,
-          metadata: JSON.stringify(data)
-        }
-      });
-      
-      return NextResponse.json({ 
-        success: true, 
-        item: newItem 
-      });
-    },
-    { 
-      requiredPermission: 'resources:create',
-      schema 
-    }
-  );
-}
-```
-
-## Working with Posts - Secure Implementation Example
-
-Drawing from our project's Post model, here's a complete secure implementation example:
-
-### 1. Post Schema Enhancement
-
-```typescript
-// src/types/post.ts
-import { z } from 'zod';
-import { PostStatus } from '@prisma/client';
-
-// Validation schema for creating/updating posts
-export const postSchema = z.object({
-  title: z.string().min(3).max(200),
-  content: z.string().min(10),
-  excerpt: z.string().max(500).optional(),
-  featuredImage: z.string().url().optional(),
-  status: z.enum([PostStatus.DRAFT, PostStatus.PUBLISHED, PostStatus.ARCHIVED]),
-  isFeatured: z.boolean().default(false),
-  categoryId: z.string().optional(),
-});
-
-export type PostFormData = z.infer<typeof postSchema>;
-
-// Schema for post listing/filtering
-export const postFilterSchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(10),
-  status: z.enum([PostStatus.DRAFT, PostStatus.PUBLISHED, PostStatus.ARCHIVED]).optional(),
-  search: z.string().optional(),
-  categoryId: z.string().optional(),
-});
-
-export type PostFilter = z.infer<typeof postFilterSchema>;
-```
-
-### 2. Secure API Route for Posts
-
-```typescript
-// src/app/api/posts/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/session/manager';
-import { hasPermission, can } from '@/lib/authorization/permissions';
-import prisma from '@/lib/prisma';
-import { postFilterSchema, postSchema } from '@/types/post';
-
-// GET: List posts with filtering and pagination
-export async function GET(request: NextRequest) {
-  return withAuth(
-    request,
-    async (session, filter) => {
-      // Build query conditions
-      const where = {
-        ...(filter.status && { status: filter.status }),
-        ...(filter.categoryId && { categoryId: filter.categoryId }),
-        ...(filter.search && { 
-          OR: [
-            { title: { contains: filter.search, mode: 'insensitive' } },
-            { content: { contains: filter.search, mode: 'insensitive' } },
-          ]
-        }),
-        // Only admins can see all posts, others see only their own
-        ...(session.role !== 'ADMIN' && { authorId: session.userId })
-      };
-      
-      // Get paginated posts
-      const posts = await prisma.post.findMany({
-        where,
-        skip: (filter.page - 1) * filter.limit,
-        take: filter.limit,
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          category: true,
-        },
-        orderBy: { updatedAt: 'desc' },
-      });
-      
-      // Get total count for pagination
-      const total = await prisma.post.count({ where });
-      
-      return NextResponse.json({
-        posts,
-        pagination: {
-          page: filter.page,
-          limit: filter.limit,
-          totalPages: Math.ceil(total / filter.limit),
-          totalItems: total,
-        },
-      });
-    },
-    { 
-      requiredPermission: 'posts:read',
-      schema: postFilterSchema 
-    }
-  );
-}
-
-// POST: Create a new post
-export async function POST(request: NextRequest) {
-  return withAuth(
-    request,
-    async (session, data) => {
-      // Create slug from title
-      let slug = slugify(data.title, { lower: true, strict: true });
-      
-      // Ensure slug uniqueness
-      const existingPostWithSlug = await prisma.post.findFirst({ 
-        where: { slug } 
-      });
-      
-      if (existingPostWithSlug) {
-        const randomStr = Math.random().toString(36).substring(2, 6);
-        slug = `${slug}-${randomStr}`;
-      }
-      
-      // Create post with validated data
-      const post = await prisma.post.create({
-        data: {
-          ...data,
-          slug,
-          authorId: session.userId,
-          publishedAt: data.status === "PUBLISHED" ? new Date() : null,
-        },
-      });
-      
-      // Log the action
-      await prisma.auditLog.create({
-        data: {
-          userId: session.userId,
-          action: 'CREATE',
-          resource: 'Post',
-          resourceId: post.id,
-          metadata: JSON.stringify({
-            title: post.title,
-            status: post.status
-          })
-        }
-      });
-      
-      return NextResponse.json({ 
-        success: true, 
-        post
-      });
-    },
-    { 
-      requiredPermission: 'posts:create',
-      schema: postSchema 
-    }
-  );
-}
-```
-
-### 3. Secure API Route for a Specific Post
-
-```typescript
-// src/app/api/posts/[id]/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/session/manager';
-import { hasPermission, can } from '@/lib/authorization/permissions';
-import prisma from '@/lib/prisma';
-import { postSchema } from '@/types/post';
-
-// Helper to check post ownership or admin status
-async function canAccessPost(postId: string, userId: string, role: string) {
-  if (role === 'ADMIN') return true;
+  const response = NextResponse.redirect(url);
+  response.cookies.delete(SESSION_CONSTANTS.COOKIE_NAME);
   
-  const post = await prisma.post.findUnique({
-    where: { id: postId },
-    select: { authorId: true }
+  return response;
+}
+```
+
+## Client-Side Authentication
+
+For client components, we provide a `useAuth` hook:
+
+```typescript
+'use client';
+
+export function useAuth() {
+  const [authState, setAuthState] = useState({
+    isAuthenticated: false,
+    isLoading: true,
+    error: null,
+    user: null
   });
-  
-  return post?.authorId === userId;
-}
 
-// GET: Retrieve a specific post
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  return withAuth(
-    request,
-    async (session) => {
-      const post = await prisma.post.findUnique({
-        where: { id: params.id },
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          category: true,
-        },
+  const checkAuth = useCallback(async () => {
+    try {
+      const response = await api.get('/api/auth/check');
+      setAuthState({
+        isAuthenticated: response.data.authenticated,
+        isLoading: false,
+        error: null,
+        user: response.data.user
       });
-      
-      if (!post) {
-        return NextResponse.json(
-          { error: 'Post not found' },
-          { status: 404 }
-        );
-      }
-      
-      // Check if user can access this post
-      const hasAccess = await canAccessPost(
-        post.id,
-        session.userId,
-        session.role
-      );
-      
-      if (!hasAccess) {
-        return NextResponse.json(
-          { error: 'Not authorized to view this post' },
-          { status: 403 }
-        );
-      }
-      
-      return NextResponse.json({ post });
-    },
-    { requiredPermission: 'posts:read' }
-  );
-}
-
-// PUT: Update a post
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  return withAuth(
-    request,
-    async (session, data) => {
-      // Check if post exists
-      const post = await prisma.post.findUnique({
-        where: { id: params.id },
-      });
-      
-      if (!post) {
-        return NextResponse.json(
-          { error: 'Post not found' },
-          { status: 404 }
-        );
-      }
-      
-      // Check if user can update this post
-      const hasAccess = await canAccessPost(
-        post.id, 
-        session.userId,
-        session.role
-      );
-      
-      if (!hasAccess) {
-        return NextResponse.json(
-          { error: 'Not authorized to update this post' },
-          { status: 403 }
-        );
-      }
-      
-      // Handle slug update if title changed
-      let slug = post.slug;
-      if (data.title && post.title !== data.title) {
-        slug = slugify(data.title, { lower: true, strict: true });
-        
-        // Check for duplicate slug
-        const existingPostWithSlug = await prisma.post.findFirst({
-          where: { 
-            slug,
-            id: { not: post.id }
-          }
-        });
-        
-        if (existingPostWithSlug) {
-          const randomStr = Math.random().toString(36).substring(2, 6);
-          slug = `${slug}-${randomStr}`;
-        }
-      }
-      
-      // Handle publishedAt field
-      let publishedAt = post.publishedAt;
-      if (!publishedAt && data.status === "PUBLISHED") {
-        publishedAt = new Date();
-      }
-      
-      // Update the post
-      const updatedPost = await prisma.post.update({
-        where: { id: params.id },
-        data: {
-          ...data,
-          slug,
-          publishedAt,
-        },
-      });
-      
-      // Log the action
-      await prisma.auditLog.create({
-        data: {
-          userId: session.userId,
-          action: 'UPDATE',
-          resource: 'Post',
-          resourceId: updatedPost.id,
-          metadata: JSON.stringify({
-            title: updatedPost.title,
-            status: updatedPost.status
-          })
-        }
-      });
-      
-      return NextResponse.json({ 
-        success: true, 
-        post: updatedPost 
-      });
-    },
-    { 
-      requiredPermission: 'posts:update',
-      schema: postSchema 
+    } catch (error) {
+      // Error handling
     }
-  );
-}
+  }, []);
 
-// DELETE: Remove a post
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  return withAuth(
-    request,
-    async (session) => {
-      // Check if post exists
-      const post = await prisma.post.findUnique({
-        where: { id: params.id },
-      });
-      
-      if (!post) {
-        return NextResponse.json(
-          { error: 'Post not found' },
-          { status: 404 }
-        );
-      }
-      
-      // Check if user can delete this post
-      const hasAccess = await canAccessPost(
-        post.id,
-        session.userId,
-        session.role
-      );
-      
-      if (!hasAccess && session.role !== 'ADMIN') {
-        return NextResponse.json(
-          { error: 'Not authorized to delete this post' },
-          { status: 403 }
-        );
-      }
-      
-      // Delete the post
-      await prisma.post.delete({
-        where: { id: params.id },
-      });
-      
-      // Log the action
-      await prisma.auditLog.create({
-        data: {
-          userId: session.userId,
-          action: 'DELETE',
-          resource: 'Post',
-          resourceId: params.id,
-          metadata: JSON.stringify({
-            postId: params.id,
-            title: post.title
-          })
-        }
-      });
-      
-      return NextResponse.json({ success: true });
-    },
-    { requiredPermission: 'posts:delete' }
-  );
+  // Check auth on initial load
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  // ...other auth functions
+
+  return {
+    ...authState,
+    checkAuth,
+    logout,
+    requireAuth
+  };
 }
 ```
 
-## Security Best Practices Summary
+## API Route Protection
 
-1. **Authentication First**: Always check for valid session before processing any protected route or API request.
+For API routes, we use our permissions middleware:
 
-2. **Granular Permissions**: Use RBAC and resource-specific permissions to ensure precise access control.
+```typescript
+// Protect API route with permissions
+export async function GET(req: NextRequest) {
+  return withPermission(req, 'dashboard:view', async () => {
+    const dashboardData = await fetchDashboardData();
+    return NextResponse.json({ dashboardData });
+  });
+}
 
-3. **Input Validation**: Validate all user input using Zod schemas before processing.
+// Protect resource-based actions
+export async function POST(req: NextRequest) {
+  return withResourcePermission(req, 'create', 'posts', async () => {
+    const data = await req.json();
+    const post = await prisma.post.create({ data });
+    return NextResponse.json({ post }, { status: 201 });
+  });
+}
+```
 
-4. **Resource Ownership**: Check if the authenticated user owns or has rights to access specific resources.
+## Common Issues and Troubleshooting
 
-5. **Audit Logging**: Log all important security actions, especially for sensitive operations.
+### Issue: Middleware Redirect Loops
 
-6. **Error Handling**: Use standardized error responses without leaking internal details in production.
+If you experience redirect loops (browser error: "ERR_TOO_MANY_REDIRECTS"), check:
 
-7. **Security Headers**: Apply appropriate security headers to all responses.
+1. That `publicRoutes` includes all necessary public paths
+2. The route is not incorrectly classified as admin-only
+3. Dashboard routes are properly handled for regular users
 
-8. **Rate Limiting**: Implement rate limiting on sensitive endpoints to prevent abuse.
+### Issue: JWT Verification Failures
 
-9. **JWT Security**: Use secure, HTTP-only cookies for session management.
+If authentication fails with JWT errors:
 
-10. **HTTPS Only**: Enforce HTTPS in production environments.
+1. Ensure `JWT_SECRET` is properly set in environment variables
+2. Check cookie expiration and same-site settings
+3. Verify JWT token format and encoding
 
-By following these practices, our routes and API endpoints will maintain a high security standard while providing a seamless user experience. 
+### Issue: Role-Based Access Problems
+
+If users can't access routes they should, or can access routes they shouldn't:
+
+1. Verify user role assignment in the database
+2. Check `isAdminRoute` logic in middleware
+3. Ensure role information is correctly included in the JWT payload
+
+## Security Recommendations
+
+1. **Environment Variables**: Always set proper `JWT_SECRET` in production
+2. **Cookie Security**: Use `secure: true` and `sameSite: 'strict'` in production
+3. **Token Lifetime**: Balance security and usability with appropriate token expiration
+4. **Error Handling**: Avoid exposing sensitive information in error messages
+5. **Logging**: Implement security event logging for audit purposes 

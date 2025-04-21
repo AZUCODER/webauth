@@ -1,3 +1,5 @@
+'use server';
+
 import { Resend } from 'resend';
 
 // Initialize Resend with API key
@@ -120,7 +122,7 @@ export async function sendVerificationEmail(email: string, token: string) {
                           <tr>
                             <td style="font-family: sans-serif; font-size: 14px; vertical-align: top;" valign="top">
                               <div style="text-align: center; margin-bottom: 20px;">
-                                <img src="${LOGO_URL}" width="150" alt="${COMPANY_NAME}" style="border: none; -ms-interpolation-mode: bicubic; max-width: 100%;">
+                                <img src="${LOGO_URL}" alt="${COMPANY_NAME} Logo" style="max-width: 120px; height: auto;">
                               </div>
                               <h2 style="color: #000000; font-family: sans-serif; font-weight: 600; line-height: 1.4; margin: 0; margin-bottom: 20px; font-size: 24px; text-align: center;">Verify your email address</h2>
                               <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;">Hello,</p>
@@ -133,7 +135,7 @@ export async function sendVerificationEmail(email: string, token: string) {
                                         <tbody>
                                           <tr>
                                             <td style="font-family: sans-serif; font-size: 14px; vertical-align: top; border-radius: 5px; text-align: center; background-color: ${PRIMARY_COLOR};" valign="top" align="center" bgcolor="${PRIMARY_COLOR}">
-                                              <a href="${verificationUrl}" target="_blank" style="border: solid 1px ${PRIMARY_COLOR}; border-radius: 5px; box-sizing: border-box; cursor: pointer; display: inline-block; font-size: 14px; font-weight: bold; margin: 0; padding: 12px 25px; text-decoration: none; text-transform: capitalize; background-color: ${PRIMARY_COLOR}; border-color: ${PRIMARY_COLOR}; color: #ffffff;">Verify Email Address</a>
+                                              <a href="${verificationUrl}" target="_blank" style="border: solid 1px ${PRIMARY_COLOR}; border-radius: 5px; box-sizing: border-box; cursor: pointer; display: inline-block; font-size: 14px; font-weight: bold; margin: 0; padding: 12px 25px; text-decoration: none; text-transform: capitalize; background-color: ${PRIMARY_COLOR}; border-color: ${PRIMARY_COLOR}; color: #ffffff;">Verify Email</a>
                                             </td>
                                           </tr>
                                         </tbody>
@@ -192,7 +194,9 @@ export async function sendVerificationEmail(email: string, token: string) {
 
 // Welcome email after verification
 export async function sendWelcomeEmail(email: string, name: string) {
+  const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL}/login`;
   const date = new Date().getFullYear();
+  const username = name || 'there';
   
   try {
     const { data, error } = await resend.emails.send({
@@ -207,6 +211,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
           <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
           <title>Welcome to ${COMPANY_NAME}</title>
           <style>
+            /* Email styles */
             @media only screen and (max-width: 620px) {
               table.body h1 {
                 font-size: 28px !important;
@@ -236,53 +241,6 @@ export async function sendWelcomeEmail(email: string, name: string) {
                 border-radius: 0 !important;
                 border-right-width: 0 !important;
               }
-              table.body .btn table {
-                width: 100% !important;
-              }
-              table.body .btn a {
-                width: 100% !important;
-              }
-              table.body .img-responsive {
-                height: auto !important;
-                max-width: 100% !important;
-                width: auto !important;
-              }
-            }
-            @media all {
-              .ExternalClass {
-                width: 100%;
-              }
-              .ExternalClass,
-              .ExternalClass p,
-              .ExternalClass span,
-              .ExternalClass font,
-              .ExternalClass td,
-              .ExternalClass div {
-                line-height: 100%;
-              }
-              .apple-link a {
-                color: inherit !important;
-                font-family: inherit !important;
-                font-size: inherit !important;
-                font-weight: inherit !important;
-                line-height: inherit !important;
-                text-decoration: none !important;
-              }
-              #MessageViewBody a {
-                color: inherit;
-                text-decoration: none;
-                font-size: inherit;
-                font-family: inherit;
-                font-weight: inherit;
-                line-height: inherit;
-              }
-              .btn-primary table td:hover {
-                background-color: #3730a3 !important;
-              }
-              .btn-primary a:hover {
-                background-color: #3730a3 !important;
-                border-color: #3730a3 !important;
-              }
             }
           </style>
         </head>
@@ -301,17 +259,12 @@ export async function sendWelcomeEmail(email: string, name: string) {
                           <tr>
                             <td style="font-family: sans-serif; font-size: 14px; vertical-align: top;" valign="top">
                               <div style="text-align: center; margin-bottom: 20px;">
-                                <img src="${LOGO_URL}" width="150" alt="${COMPANY_NAME}" style="border: none; -ms-interpolation-mode: bicubic; max-width: 100%;">
+                                <img src="${LOGO_URL}" alt="${COMPANY_NAME} Logo" style="max-width: 120px; height: auto;">
                               </div>
                               <h2 style="color: #000000; font-family: sans-serif; font-weight: 600; line-height: 1.4; margin: 0; margin-bottom: 20px; font-size: 24px; text-align: center;">Welcome to ${COMPANY_NAME}!</h2>
-                              <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;">Hello${name ? ' ' + name : ''},</p>
+                              <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;">Hi ${username},</p>
                               <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;">Thank you for verifying your email address. Your account is now fully set up and ready to use.</p>
-                              <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;">We're excited to have you join our community. Here are a few things you can do now:</p>
-                              <ul style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px; padding-left: 20px;">
-                                <li style="margin-bottom: 8px;">Complete your profile information</li>
-                                <li style="margin-bottom: 8px;">Explore the dashboard features</li>
-                                <li style="margin-bottom: 8px;">Check out our documentation</li>
-                              </ul>
+                              <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;">You can now log in to access all features and start using the platform.</p>
                               <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="btn btn-primary" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; box-sizing: border-box; width: 100%;" width="100%">
                                 <tbody>
                                   <tr>
@@ -320,7 +273,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
                                         <tbody>
                                           <tr>
                                             <td style="font-family: sans-serif; font-size: 14px; vertical-align: top; border-radius: 5px; text-align: center; background-color: ${PRIMARY_COLOR};" valign="top" align="center" bgcolor="${PRIMARY_COLOR}">
-                                              <a href="${process.env.NEXT_PUBLIC_APP_URL}/login" target="_blank" style="border: solid 1px ${PRIMARY_COLOR}; border-radius: 5px; box-sizing: border-box; cursor: pointer; display: inline-block; font-size: 14px; font-weight: bold; margin: 0; padding: 12px 25px; text-decoration: none; text-transform: capitalize; background-color: ${PRIMARY_COLOR}; border-color: ${PRIMARY_COLOR}; color: #ffffff;">Go to Login</a>
+                                              <a href="${loginUrl}" target="_blank" style="border: solid 1px ${PRIMARY_COLOR}; border-radius: 5px; box-sizing: border-box; cursor: pointer; display: inline-block; font-size: 14px; font-weight: bold; margin: 0; padding: 12px 25px; text-decoration: none; text-transform: capitalize; background-color: ${PRIMARY_COLOR}; border-color: ${PRIMARY_COLOR}; color: #ffffff;">Login to Your Account</a>
                                             </td>
                                           </tr>
                                         </tbody>
@@ -329,8 +282,9 @@ export async function sendWelcomeEmail(email: string, name: string) {
                                   </tr>
                                 </tbody>
                               </table>
-                              <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;">If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
-                              <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;">Best regards,<br>${COMPANY_NAME} Team</p>
+                              <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;">If you have any questions or need help getting started, feel free to reply to this email or contact our support team.</p>
+                              <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;">We're excited to have you join us!</p>
+                              <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;">Best regards,<br>The ${COMPANY_NAME} Team</p>
                             </td>
                           </tr>
                         </table>
@@ -364,13 +318,15 @@ export async function sendWelcomeEmail(email: string, name: string) {
 
     if (error) {
       console.error('Error sending welcome email:', error);
-      throw new Error(`Failed to send welcome email: ${error.message}`);
+      // We don't want to fail the verification process if welcome email fails
+      return { success: false };
     }
 
     return { success: true, messageId: data?.id };
   } catch (error) {
     console.error('Error sending welcome email:', error);
-    throw error;
+    // We don't want to fail the verification process if welcome email fails
+    return { success: false };
   }
 }
 

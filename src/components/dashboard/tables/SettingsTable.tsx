@@ -18,19 +18,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { 
   IconSearch, 
-  IconFilter, 
   IconChevronLeft, 
   IconChevronRight,
   IconCategory,
   IconEdit,
   IconTrash
 } from "@tabler/icons-react";
-import Link from "next/link";
 
 interface Setting {
   id: string;
@@ -52,8 +50,12 @@ interface SettingsTableProps {
     totalPages: number;
     totalItems: number;
   };
+  initialFilters?: {
+    search: string;
+    category: string;
+  };
   onPageChange?: (page: number) => void;
-  onFilterChange?: (filters: any) => void;
+  onFilterChange?: (filters: Record<string, string>) => void;
   onEdit?: (setting: Setting) => void;
   onDelete?: (id: string) => void;
 }
@@ -62,14 +64,15 @@ export function SettingsTable({
   settings,
   categories,
   pagination,
+  initialFilters,
   onPageChange,
   onFilterChange,
   onEdit,
   onDelete,
 }: SettingsTableProps) {
   const [filters, setFilters] = useState({
-    category: "",
-    search: "",
+    category: initialFilters?.category || "",
+    search: initialFilters?.search || "",
   });
 
   useEffect(() => {
@@ -78,7 +81,15 @@ export function SettingsTable({
       ...prev,
       category: prev.category || "all"
     }));
-  }, []);
+    
+    // If we have initial filters, trigger the filter change handler
+    if (initialFilters && (initialFilters.search || initialFilters.category)) {
+      onFilterChange?.({
+        search: initialFilters.search,
+        category: initialFilters.category === "all" ? "" : initialFilters.category
+      });
+    }
+  }, [initialFilters, onFilterChange]);
 
   const handleFilterChange = (key: string, value: string) => {
     // Convert "all" value to empty string for filtering
@@ -99,7 +110,6 @@ export function SettingsTable({
     <div className="space-y-4">
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle>Filters</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4">

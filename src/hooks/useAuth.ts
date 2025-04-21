@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LOGOUT_REDIRECT_PATH, DEFAULT_LOGIN_REDIRECT_PATH } from '@/lib/constants/paths';
+import api from '@/lib/api/axios';
+import { LOGOUT_REDIRECT_PATH } from '@/lib/constants/paths';
+import axios from 'axios';
 
 // Define the Auth interface
 interface AuthState {
@@ -34,31 +36,23 @@ export function useAuth() {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true }));
       
-      // Make a request to a check-auth endpoint
-      const res = await fetch('/api/auth/check', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // Important for cookies
-      });
-      
-      if (!res.ok) {
-        throw new Error('Authentication check failed');
-      }
-      
-      const data = await res.json();
+      // Make a request to a check-auth endpoint using the api instance
+      const response = await api.get('/api/auth/check');
       
       setAuthState({
-        isAuthenticated: data.authenticated,
+        isAuthenticated: response.data.authenticated,
         isLoading: false,
         error: null,
-        user: data.user
+        user: response.data.user
       });
       
     } catch (error) {
       setAuthState({
         isAuthenticated: false,
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: axios.isAxiosError(error) 
+          ? error.response?.data?.message || error.message 
+          : 'Unknown error',
         user: null
       });
     }
@@ -72,18 +66,7 @@ export function useAuth() {
   // Logout function
   const logout = useCallback(async () => {
     try {
-      const res = await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-      
-      if (!res.ok) {
-        throw new Error('Logout failed');
-      }
-      
-      // Get response data to check for redirect path
-      const data = await res.json();
+      const response = await api.post('/api/auth/logout');
       
       // Update auth state
       setAuthState({
@@ -94,7 +77,7 @@ export function useAuth() {
       });
       
       // Use the redirect path from the response or fall back to the constant
-      const redirectPath = data.redirectTo || LOGOUT_REDIRECT_PATH;
+      const redirectPath = response.data.redirectTo || LOGOUT_REDIRECT_PATH;
       
       // Redirect to login page
       router.push(redirectPath);
@@ -102,7 +85,9 @@ export function useAuth() {
     } catch (error) {
       setAuthState(prev => ({
         ...prev,
-        error: error instanceof Error ? error.message : 'Logout failed'
+        error: axios.isAxiosError(error)
+          ? error.response?.data?.message || error.message
+          : 'Logout failed'
       }));
       
       // Even on error, try to redirect to the login page

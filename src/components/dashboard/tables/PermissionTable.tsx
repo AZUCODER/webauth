@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { 
   MoreHorizontal, 
@@ -12,7 +12,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
-  ChevronsRight 
+  ChevronsRight,
+  Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,49 +46,94 @@ import { deletePermission } from '@/actions/admin/permissionActions';
 import { toast } from 'sonner';
 import { PermissionData } from '@/types/permission';
 
-interface PermissionTableProps {
-  permissions: PermissionData[];
+interface PaginationData {
+  currentPage: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
 }
 
-export function PermissionTable({ permissions }: PermissionTableProps) {
+interface FilterData {
+  search: string;
+  resource: string;
+}
+
+interface PermissionTableProps {
+  permissions: PermissionData[];
+  pagination?: PaginationData;
+  initialFilters?: FilterData;
+}
+
+export function PermissionTable({ 
+  permissions, 
+  pagination = { currentPage: 1, pageSize: 10, totalItems: 0, totalPages: 1 },
+  initialFilters = { search: '', resource: '' }
+}: PermissionTableProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const pathname = usePathname();
   
-  const [searchTerm, setSearchTerm] = useState('');
-  const [resourceFilter, setResourceFilter] = useState('');
+  const [searchTerm, setSearchTerm] = useState(initialFilters.search);
+  const [resourceFilter, setResourceFilter] = useState(initialFilters.resource);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [permissionToDelete, setPermissionToDelete] = useState<string | null>(null);
-  
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [isSearching, setIsSearching] = useState(false);
   
   // Get unique resources for filtering
   const resources = [...new Set(permissions.map(permission => permission.resource))];
   
-  // Filter permissions by search term and resource
-  const filteredPermissions = permissions.filter(permission => 
-    (permission.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     permission.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     permission.resource.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     permission.action.toLowerCase().includes(searchTerm.toLowerCase())) &&
-    (resourceFilter === '' || permission.resource === resourceFilter)
-  );
+  // Create a URL with updated search params
+  const createQueryString = (params: Record<string, string | number | undefined>) => {
+    const queryParams = new URLSearchParams();
+    
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') {
+        queryParams.set(key, String(value));
+      }
+    });
+    
+    return queryParams.toString();
+  };
 
-  // Calculate pagination values
-  const totalItems = filteredPermissions.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
-  const currentItems = filteredPermissions.slice(startIndex, endIndex);
-
-  // Reset to first page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, resourceFilter]);
-
+  // Handle page change
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    router.push(`${pathname}?${createQueryString({ 
+      page, 
+      pageSize: pagination.pageSize,
+      search: searchTerm,
+      resource: resourceFilter
+    })}`);
+  };
+
+  // Handle page size change
+  const handlePageSizeChange = (size: number) => {
+    router.push(`${pathname}?${createQueryString({ 
+      page: 1, // Reset to page 1 when changing page size
+      pageSize: size,
+      search: searchTerm,
+      resource: resourceFilter
+    })}`);
+  };
+  
+  // Handle search
+  const handleSearch = () => {
+    setIsSearching(true);
+    router.push(`${pathname}?${createQueryString({ 
+      page: 1, // Reset to page 1 when searching
+      pageSize: pagination.pageSize,
+      search: searchTerm,
+      resource: resourceFilter
+    })}`);
+  };
+
+  // Handle resource filter change
+  const handleResourceFilterChange = (resource: string) => {
+    setResourceFilter(resource);
+    router.push(`${pathname}?${createQueryString({ 
+      page: 1, // Reset to page 1 when filtering
+      pageSize: pagination.pageSize,
+      search: searchTerm,
+      resource
+    })}`);
   };
 
   const handleEditPermission = (id: string) => {
@@ -114,19 +160,45 @@ export function PermissionTable({ permissions }: PermissionTableProps) {
     setPermissionToDelete(null);
   };
 
+  // Reset isSearching state after search completes
+  useEffect(() => {
+    if (isSearching) {
+      const timer = setTimeout(() => {
+        setIsSearching(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isSearching]);
+
   return (
     <div className="w-full">
       <div className="flex items-center justify-between py-4">
         <div className="flex gap-2">
-          <Input
-            placeholder="Search permissions..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-64"
-          />
+          <div className="relative">
+            <Input
+              placeholder="Search permissions..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-64 pr-10"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearch();
+                }
+              }}
+            />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="absolute right-0 top-0 h-full"
+              onClick={handleSearch}
+              disabled={isSearching}
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+          </div>
           <select
             value={resourceFilter}
-            onChange={(e) => setResourceFilter(e.target.value)}
+            onChange={(e) => handleResourceFilterChange(e.target.value)}
             className="h-10 rounded-md border border-input bg-background px-3 py-2"
           >
             <option value="">All Resources</option>
@@ -155,14 +227,14 @@ export function PermissionTable({ permissions }: PermissionTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {currentItems.length === 0 ? (
+            {permissions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center">
                   No permissions found.
                 </TableCell>
               </TableRow>
             ) : (
-              currentItems.map((permission) => (
+              permissions.map((permission) => (
                 <TableRow key={permission.id}>
                   <TableCell className="font-medium">{permission.name}</TableCell>
                   <TableCell>
@@ -217,9 +289,9 @@ export function PermissionTable({ permissions }: PermissionTableProps) {
       {/* Pagination Controls */}
       <div className="flex items-center justify-between py-4">
         <div className="flex-1 text-sm text-muted-foreground">
-          Showing <span className="font-medium">{startIndex + 1}</span> to{" "}
-          <span className="font-medium">{endIndex}</span> of{" "}
-          <span className="font-medium">{totalItems}</span> results
+          Showing <span className="font-medium">{(pagination.currentPage - 1) * pagination.pageSize + 1}</span> to{" "}
+          <span className="font-medium">{Math.min(pagination.currentPage * pagination.pageSize, pagination.totalItems)}</span> of{" "}
+          <span className="font-medium">{pagination.totalItems}</span> results
         </div>
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-2">
@@ -228,8 +300,8 @@ export function PermissionTable({ permissions }: PermissionTableProps) {
             </label>
             <select
               id="items-per-page"
-              value={itemsPerPage}
-              onChange={(e) => setItemsPerPage(Number(e.target.value))}
+              value={pagination.pageSize}
+              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
               className="h-8 w-16 rounded-md border border-input bg-transparent px-2 py-1 text-sm"
             >
               <option value={5}>5</option>
@@ -243,7 +315,7 @@ export function PermissionTable({ permissions }: PermissionTableProps) {
               variant="outline"
               size="icon"
               onClick={() => handlePageChange(1)}
-              disabled={currentPage === 1}
+              disabled={pagination.currentPage === 1}
               title="First page"
             >
               <ChevronsLeft className="h-4 w-4" />
@@ -251,32 +323,32 @@ export function PermissionTable({ permissions }: PermissionTableProps) {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
+              onClick={() => handlePageChange(pagination.currentPage - 1)}
+              disabled={pagination.currentPage === 1}
               title="Previous page"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
 
             <div className="flex items-center">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                 // Logic to show pages around current page
                 let pageNum;
-                if (totalPages <= 5) {
+                if (pagination.totalPages <= 5) {
                   pageNum = i + 1;
-                } else if (currentPage <= 3) {
+                } else if (pagination.currentPage <= 3) {
                   pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
+                } else if (pagination.currentPage >= pagination.totalPages - 2) {
+                  pageNum = pagination.totalPages - 4 + i;
                 } else {
-                  pageNum = currentPage - 2 + i;
+                  pageNum = pagination.currentPage - 2 + i;
                 }
                 
                 return (
-                  pageNum > 0 && pageNum <= totalPages && (
+                  pageNum > 0 && pageNum <= pagination.totalPages && (
                     <Button
                       key={pageNum}
-                      variant={currentPage === pageNum ? "default" : "outline"}
+                      variant={pagination.currentPage === pageNum ? "default" : "outline"}
                       size="icon"
                       onClick={() => handlePageChange(pageNum)}
                       className="w-8 h-8"
@@ -291,8 +363,8 @@ export function PermissionTable({ permissions }: PermissionTableProps) {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
+              onClick={() => handlePageChange(pagination.currentPage + 1)}
+              disabled={pagination.currentPage === pagination.totalPages}
               title="Next page"
             >
               <ChevronRight className="h-4 w-4" />
@@ -300,8 +372,8 @@ export function PermissionTable({ permissions }: PermissionTableProps) {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => handlePageChange(totalPages)}
-              disabled={currentPage === totalPages}
+              onClick={() => handlePageChange(pagination.totalPages)}
+              disabled={pagination.currentPage === pagination.totalPages}
               title="Last page"
             >
               <ChevronsRight className="h-4 w-4" />

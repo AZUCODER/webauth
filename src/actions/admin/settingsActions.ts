@@ -5,6 +5,7 @@ import { getSession } from "@/lib/session/manager";
 import { hasPermission } from '@/lib/authorization/permissions';
 import { z } from "zod";
 import { logAuditEvent } from "@/lib/audit/auditLogger";
+import { SettingFormData, settingSchema } from "@/types/setting";
 
 // Define types for settings
 interface SettingsFilters {
@@ -12,15 +13,24 @@ interface SettingsFilters {
   search?: string;
 }
 
-// Setting schema for validation
-const settingSchema = z.object({
-  id: z.string().optional(),
-  key: z.string().min(2, "Key must be at least 2 characters"),
-  value: z.string(),
-  category: z.string().min(2, "Category must be at least 2 characters"),
-  description: z.string().optional(),
-  isPublic: z.boolean().default(false),
-});
+// Define a proper type for the where clause object
+interface SettingWhereClause {
+  category?: string;
+  OR?: {
+    key?: { contains: string };
+    value?: { contains: string };
+    description?: { contains: string };
+  }[];
+}
+
+// Define a type for the changes tracking
+interface SettingChanges {
+  key?: { before: string; after: string };
+  value?: { before: string; after: string };
+  category?: { before: string; after: string };
+  description?: { before: string | null; after: string | null };
+  isPublic?: { before: boolean; after: boolean };
+}
 
 export async function getSettings(
   page = 1,
@@ -40,7 +50,7 @@ export async function getSettings(
     }
 
     // Build filter conditions
-    const where: any = {};
+    const where: SettingWhereClause = {};
     
     if (filters.category && filters.category !== "all") {
       where.category = filters.category;
@@ -124,7 +134,7 @@ export async function getSettingById(id: string) {
   }
 }
 
-export async function createSetting(data: z.infer<typeof settingSchema>) {
+export async function createSetting(data: SettingFormData) {
   try {
     const session = await getSession();
     if (!session || !session.userId) {
@@ -168,13 +178,13 @@ export async function createSetting(data: z.infer<typeof settingSchema>) {
     });
 
     // Log audit event
-    await logAuditEvent(
-      session.userId,
-      'create',
-      'setting',
-      newSetting.id,
-      { key: newSetting.key, category: newSetting.category }
-    );
+    await logAuditEvent({
+      userId: session.userId,
+      action: 'create',
+      resource: 'setting',
+      resourceId: newSetting.id,
+      metadata: { key: newSetting.key, category: newSetting.category }
+    });
 
     return { success: true, setting: newSetting };
   } catch (error) {
@@ -230,7 +240,7 @@ export async function updateSetting(id: string, data: z.infer<typeof settingSche
     }
 
     // Create a changes object to track what was modified
-    const changes: Record<string, { before: any; after: any }> = {};
+    const changes: SettingChanges = {};
 
     // Check each field for changes
     if (data.key !== existingSetting.key) {
@@ -262,17 +272,17 @@ export async function updateSetting(id: string, data: z.infer<typeof settingSche
     });
 
     // Log audit event with changes
-    await logAuditEvent(
-      session.userId,
-      'update',
-      'setting',
-      updatedSetting.id,
-      { 
+    await logAuditEvent({
+      userId: session.userId,
+      action: 'update',
+      resource: 'setting',
+      resourceId: updatedSetting.id,
+      metadata: { 
         key: updatedSetting.key, 
         category: updatedSetting.category,
         changes 
       }
-    );
+    });
 
     return { success: true, setting: updatedSetting };
   } catch (error) {
@@ -312,13 +322,13 @@ export async function deleteSetting(id: string) {
     });
 
     // Log audit event
-    await logAuditEvent(
-      session.userId,
-      'delete',
-      'setting',
-      id,
-      { key: setting.key, category: setting.category }
-    );
+    await logAuditEvent({
+      userId: session.userId,
+      action: 'delete',
+      resource: 'setting',
+      resourceId: id,
+      metadata: { key: setting.key, category: setting.category }
+    });
 
     return { success: true };
   } catch (error) {

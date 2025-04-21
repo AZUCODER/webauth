@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import api from '@/lib/api/axios';
 import { 
   XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, AreaChart, Area 
@@ -36,13 +37,9 @@ export default function SessionChart() {
       setError(null);
       
       try {
-        const response = await fetch(`/api/sessions?days=${timeRange}`);
+        const response = await api.get(`/api/sessions?days=${timeRange}`);
         
-        if (!response.ok) {
-          throw new Error('Failed to fetch session data');
-        }
-        
-        const result = await response.json();
+        const result = response.data;
         
         if (!result || !result.sessions || !result.sessionsByDay) {
           throw new Error('Invalid session data format');
@@ -52,7 +49,11 @@ export default function SessionChart() {
         setIsLoading(false);
       } catch (err) {
         console.error('Error fetching session data:', err);
-        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+        setError(
+          axios.isAxiosError(err)
+            ? err.response?.data?.message || err.message
+            : err instanceof Error ? err.message : 'An unknown error occurred'
+        );
         setIsLoading(false);
       }
     };

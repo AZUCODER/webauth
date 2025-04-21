@@ -8,14 +8,52 @@ The WebAuth system implements a role-based access control (RBAC) mechanism where
 
 ### Roles
 
-The system defines four primary roles with increasing access levels:
+The system defines two primary roles with distinct access levels:
 
-1. **USER** - Basic access for regular users
-2. **EDITOR** - Standard access for content creators
-3. **MANAGER** - Extended access for administrators
-4. **ADMIN** - Full access to all system features
+1. **USER** - Standard access for regular users, allowing them to:
+   - Access the dashboard interface
+   - Manage their own profile
+   - Upload and manage files
+   - View and edit their own content
+
+2. **ADMIN** - Full access to all system features and administration capabilities:
+   - Access to admin-only routes
+   - User management
+   - System settings configuration
+   - Permission management
+   - Content moderation
 
 Roles are implemented as an enum in the Prisma schema, not as a database model.
+
+### Middleware-Based Access Control
+
+The application uses a middleware-based approach to control access to different routes:
+
+```typescript
+// Public routes - accessible without authentication
+const publicRoutes = [
+  '/login',
+  '/register',
+  '/verify-email',
+  '/reset-password',
+  // API routes for authentication
+];
+
+// Dashboard routes - for authenticated users (both USER and ADMIN roles)
+const dashboardRoutes = [
+  '/dashboard',
+  '/profile',
+  '/files',
+  '/account',
+];
+
+// Admin-only routes - require ADMIN role
+const adminRoutes = [
+  '/admin',
+  '/settings',
+  '/permissions',
+];
+```
 
 ### Permissions
 
@@ -36,47 +74,148 @@ The `RolePermission` model establishes a many-to-many relationship between roles
 - Reference to a role (enum value)
 - Reference to a permission (ID)
 
-## Implementation Details
+## Current Implementation
 
-### Database Schema
+### Route Protection with Middleware
 
-```prisma
-// Role enum
-enum Role {
-  USER
-  EDITOR
-  MANAGER
-  ADMIN
-}
+The middleware checks for authentication and role-based access:
 
-// Permission model
-model Permission {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String?
-  resource    String
-  action      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+```typescript
+export async function middleware(request: NextRequest) {
+  // Skip auth checks for public routes
+  if (isPublicRoute(pathname)) {
+    return NextResponse.next();
+  }
 
-  // Relations
-  rolePermissions RolePermission[]
-  userPermissions UserPermission[]
-}
-
-// RolePermission model
-model RolePermission {
-  id           String     @id @default(cuid())
-  role         Role
-  permissionId String
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-  createdAt    DateTime   @default(now())
-
-  @@unique([role, permissionId])
+  // Verify JWT token
+  try {
+    const { payload } = await jwtVerify(
+      sessionCookie.value,
+      encoder.encode(secretKey)
+    );
+    
+    // Check role-based permissions for admin routes
+    if (isAdminRoute(pathname) && payload.role !== 'ADMIN') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      return NextResponse.redirect(url);
+    }
+    
+    // Grant access if all checks pass
+    return NextResponse.next();
+  } catch (error) {
+    // Handle JWT verification failure
+    return redirectToLogin(request);
+  }
 }
 ```
 
-### Server Actions
+### Known Issue: Dashboard Access
+
+**Current Issue**: The middleware has a configuration problem where the dashboard routes are being incorrectly treated as admin-only routes, causing regular users with the USER role to be redirected in a loop when trying to access the dashboard.
+
+**Manifest Symptoms**:
+- Users with USER role get "too many redirects" error
+- Server logs show repeated access denied messages
+- Error in the console: `User with role USER attempted to access admin route: /dashboard`
+
+**Solution**: The `isAdminRoute` function needs to be updated to properly consider dashboard routes as accessible to all authenticated users:
+
+```typescript
+// Fix for isAdminRoute function
+function isAdminRoute(path: string): boolean {
+  // First check if it's a dashboard route (which all authenticated users can access)
+  if (isDashboardRoute(path)) {
+    return false;
+  }
+  
+  // Then check if it's in the admin routes list
+  return adminRoutes.some(route => path.startsWith(route));
+}
+```
+
+### Default Role Permissions
+
+1. **USER Role Permissions**:
+   - Access dashboard interface (`dashboard:access`)
+   - Manage their own profile (`profile:read`, `profile:update`)
+   - Manage their own files (`files:upload`, `files:download`, `files:delete`)
+   - Create and manage their own posts (`posts:create`, `posts:read`, `posts:update`, `posts:delete`)
+
+2. **ADMIN Role Permissions**:
+   - All permissions in the system
+   - User management permissions (`users:list`, `users:create`, `users:update`, `users:delete`)
+   - Settings management (`settings:read`, `settings:update`)
+   - Permission management (`permissions:read`, `permissions:update`)
+
+### Permission Checking
+
+In addition to the middleware-based route protection, the system provides utility functions for checking permissions within components and API handlers:
+
+```typescript
+// Check if user has a specific permission
+export async function hasPermission(
+  permissionName: string
+): Promise<boolean> {
+  const session = await getSession();
+  if (!session) return false;
+  
+  // Check user's role permissions
+  const rolePermissions = await getRolePermissions(session.role);
+  if (rolePermissions.includes(permissionName)) {
+    return true;
+  }
+  
+  // Check user-specific permission overrides
+  const userPermission = await getUserPermission(
+    session.userId,
+    permissionName
+  );
+  
+  return !!userPermission;
+}
+
+// API route protection with permissions
+export async function withPermission(
+  req: NextRequest,
+  permissionName: string,
+  handler: () => Promise<NextResponse>
+): Promise<NextResponse> {
+  const hasAccess = await hasPermission(permissionName);
+  
+  if (!hasAccess) {
+    return NextResponse.json(
+      { error: 'Permission denied' },
+      { status: 403 }
+    );
+  }
+  
+  return handler();
+}
+```
+
+## Best Practices
+
+1. **Consistent Route Categorization**: All routes should be correctly categorized as public, dashboard (authenticated), or admin-only.
+
+2. **Proper Role Assignment**: Ensure users are assigned the appropriate role during registration or user creation.
+
+3. **Permission Checks**: Always use permission checks for sensitive operations, especially in API routes.
+
+4. **Audit Logging**: Log permission changes and access denied events for security auditing.
+
+5. **Error Messages**: Provide clear but not overly detailed error messages for authorization failures.
+
+## Implementation Notes
+
+- The current middleware implementation grants access to dashboard routes for all authenticated users but requires the ADMIN role for admin-only routes.
+- API routes should implement their own permission checks using the `withPermission` helper.
+- The system supports role-based permissions with the ability to override permissions for specific users.
+- The dashboard access issue needs to be fixed by properly excluding dashboard routes from admin-only routes.
+
+By adhering to these practices, the application maintains secure access control while providing appropriate functionality to users based on their roles.
+
+## Server Actions
 
 The system provides two main server actions for permission management:
 
@@ -90,7 +229,7 @@ The system provides two main server actions for permission management:
    - Replaces existing permissions with the new set
    - Revalidates cache for affected routes
 
-### UI Components
+## UI Components
 
 The permission management interface consists of:
 

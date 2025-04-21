@@ -125,7 +125,8 @@ export async function updateProfile(
         // Check if user has permission to update their profile
         const isAdmin = session.role === 'ADMIN';
         const hasUpdateAllPermission = await hasPermission('profile:update-all');
-        const canUpdateProfile = isAdmin || hasUpdateAllPermission;
+        const hasUpdatePermission = await hasPermission('profile:update');
+        const canUpdateProfile = isAdmin || hasUpdateAllPermission || hasUpdatePermission;
 
         if (!canUpdateProfile) {
             console.error('Permission denied to update profile');
@@ -256,8 +257,9 @@ export async function updateUserProfile(formData: FormData) {
         // Either user is updating their own profile or has the permission to update other profiles
         const isOwnProfile = session.userId === userId;
         const canUpdateOtherProfiles = await hasPermission('profile:update-all');
-        
-        if (!isOwnProfile && !canUpdateOtherProfiles && session.role !== 'ADMIN') {
+        const hasUpdatePermission = await hasPermission('profile:update');
+
+        if (!((isOwnProfile && hasUpdatePermission) || canUpdateOtherProfiles || session.role === 'ADMIN')) {
             console.error('Permission denied to update profile');
             return {
                 success: false,

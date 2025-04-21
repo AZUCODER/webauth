@@ -20,8 +20,6 @@ import {
   FileText,
   Settings,
   Shield,
-  Users,
-  FileEdit,
 } from "lucide-react";
 
 export default async function RolePermissionsPage() {
@@ -60,34 +58,14 @@ export default async function RolePermissionsPage() {
   }> = [
     {
       role: "USER",
-      description: "Regular users with limited access to system features.",
+      description: "Regular users with standard access to system features.",
       icon: <User className="h-8 w-8" />,
-      permissionLevel: "low",
+      permissionLevel: "medium",
       color: "bg-blue-50 text-blue-700 border-blue-200",
       primaryFeatures: [
-        "View content",
+        "Create and manage posts",
         "Manage own profile",
-        "Basic interactions",
-      ],
-    },
-    {
-      role: "EDITOR",
-      description: "Content editors who can manage posts and content.",
-      icon: <FileEdit className="h-8 w-8" />,
-      permissionLevel: "medium",
-      color: "bg-green-50 text-green-700 border-green-200",
-      primaryFeatures: ["Create content", "Edit content", "Moderate comments"],
-    },
-    {
-      role: "MANAGER",
-      description: "Managers with broader access to administrative features.",
-      icon: <Users className="h-8 w-8" />,
-      permissionLevel: "high",
-      color: "bg-amber-50 text-amber-700 border-amber-200",
-      primaryFeatures: [
-        "User management",
-        "Content approval",
-        "Reports & analytics",
+        "View categories",
       ],
     },
     {

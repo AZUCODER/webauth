@@ -15,6 +15,12 @@ interface PageProps {
   }>;
 }
 
+// Define a type for the filters
+interface SettingsFilters {
+  search?: string;
+  category?: string;
+}
+
 export default async function SettingsPage({ searchParams }: PageProps) {
   // Check if user is logged in and is admin
   const session = await getSession();
@@ -31,7 +37,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
   const limit = resolvedParams?.limit ? parseInt(resolvedParams.limit) : 10;
   
   // Build filters from search params
-  const filters: any = {};
+  const filters: SettingsFilters = {};
   
   if (resolvedParams?.search) {
     filters.search = resolvedParams.search;
@@ -67,7 +73,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
           </p>
         </div>
 
-        <Button asChild>
+        <Button asChild variant="outline" size="sm">
           <Link href="/settings/new" className="flex items-center gap-1">
             <PlusCircle />
             New Setting

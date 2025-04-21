@@ -11,11 +11,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Role } from '@prisma/client';
 import { UserPermissionData } from '@/types/permission';
 import { updateUserPermissions } from '@/actions/admin/permissionActions';
 

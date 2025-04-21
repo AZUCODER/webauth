@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { useEffect, useState } from "react";
+import api from '@/lib/api/axios';
 import {
   IconChartBar,
   IconDashboard,
@@ -11,7 +13,6 @@ import {
   IconPencilPlus,
   IconCircles,
   IconSettings,
-  IconHistory,
   IconList,
 } from "@tabler/icons-react";
 import { NavApps } from "@/components/dashboard/nav-apps";
@@ -92,29 +93,18 @@ const data = {
   // Sidebar-Nav-admin
   admin: [
     {
-      name: "Authorization",
+      name: "Permissions",
       url: "#",
       icon: IconCircles,
       submenu: [
         {
-          name: "Permissions",
+          name: "Permissions List",
           url: "/permissions",
         },
         {
-          name: "Roles",
+          name: "Role Management",
           url: "/permissions/roles",
-        },
-      ],
-    },
-    {
-      name: "Security",
-      url: "#",
-      icon: IconHistory,
-      submenu: [
-        {
-          name: "Audit Logs",
-          url: "/audit-logs",
-        },
+        }
       ],
     },
     {
@@ -148,7 +138,24 @@ const data = {
     },
   ],
 };
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Fetch the user session to determine their role
+    const fetchUserSession = async () => {
+      try {
+        const response = await api.get('/api/auth/session');
+        setUserRole(response.data.role);
+      } catch (error) {
+        console.error('Error fetching user session:', error);
+      }
+    };
+
+    fetchUserSession();
+  }, []);
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -160,7 +167,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             >
               <Link href="/dashboard">
                 <IconList />
-                <span className="text-base font-semibold">Admin Panel</span>
+                <span className="text-base font-semibold">Dashboard</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -169,7 +176,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain items={data.navMain} />
         <NavApps items={data.apps} />
-        <NavAdmin items={data.admin} />
+        {/* Only show admin navigation to users with ADMIN role */}
+        {userRole === 'ADMIN' && <NavAdmin items={data.admin} />}
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

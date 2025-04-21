@@ -3,15 +3,12 @@ import { getSession } from '@/lib/session/manager';
 import { getUserById } from '@/actions/admin/userActions';
 import { UserForm } from '@/components/dashboard/forms/UserForm';
 import { Separator } from '@/components/ui/separator';
-import { Loader2 } from 'lucide-react';
 
-interface Props {
-  params: Promise<{
-    id: string
-  }>;
-}
-
-export default async function EditUserPage({ params }: Props) {
+export default async function EditUserPage({ 
+  params 
+}: { 
+  params: { id: string } 
+}) {
   // Check if user is logged in and is admin
   const session = await getSession();
 
@@ -19,11 +16,8 @@ export default async function EditUserPage({ params }: Props) {
     redirect("/dashboard");
   }
 
-  // Await params before accessing its properties
-  const { id } = await params;
-
   // Get user by ID
-  const result = await getUserById(id);
+  const result = await getUserById(params.id);
 
   if (!result.success || !result.user) {
     notFound();
@@ -57,16 +51,6 @@ export default async function EditUserPage({ params }: Props) {
         name: user.name,
         role: user.role as "USER" | "EDITOR" | "MANAGER" | "ADMIN"
       }} />
-    </div>
-  );
-}
-
-// Loading fallback
-export function Loading() {
-  return (
-    <div className="flex justify-center items-center h-screen">
-      <Loader2 className="mr-2 h-8 w-8 animate-spin" />
-      <p>Loading user information...</p>
     </div>
   );
 }

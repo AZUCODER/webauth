@@ -8,18 +8,6 @@ export type BreadcrumbItem = {
   isCurrentPage: boolean;
 };
 
-// Define valid routes in the dashboard
-const validRoutes = [
-  'dashboard',
-  'posts',
-  'post-categories',
-  'users',
-  'profile',
-  'permissions',
-  'settings',
-  'audit-logs',
-
-];
 
 // Add special case handling for route mapping
 const routeMapping: Record<string, string> = {
@@ -33,7 +21,6 @@ const routeMapping: Record<string, string> = {
   'post-categories': 'Categories',
   'settings': 'Settings',
   'permissions': 'Permissions',
-  'audit-logs': 'Audit Logs',
 };
 
 export function usePath(): BreadcrumbItem[] {

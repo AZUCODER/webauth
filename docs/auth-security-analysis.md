@@ -2,22 +2,20 @@
 
 ## Overview
 
-This document provides a comprehensive analysis of the current authentication and authorization implementation in the project, evaluating its strengths, weaknesses, and suggesting improvements for enhanced security.
+This document provides a comprehensive analysis of the authentication and authorization implementation in the project, evaluating its strengths, weaknesses, and suggesting improvements for enhanced security.
 
 ## Current Implementation Analysis
 
 ### Authentication System
 
-The project implements a robust authentication system with the following components:
+The project implements a JWT-based authentication system with the following components:
 
 1. **User Model**:
    - Email and password-based authentication
-   - Optional phone number verification
    - Email verification workflow
    - Password hashing using bcrypt
-   - Session management
-   - Two-factor authentication infrastructure (but appears to be not fully implemented)
-   - Account locking after failed attempts
+   - Session management with JWT
+   - Role-based authorization (USER, ADMIN)
 
 2. **Session Management**:
    - JWT-based sessions with secure cookie storage
@@ -27,18 +25,13 @@ The project implements a robust authentication system with the following compone
    - Proper session termination on logout
 
 3. **Token System**:
-   - Support for multiple token types (EMAIL_VERIFICATION, PASSWORD_RESET, TWO_FACTOR, API_KEY)
+   - Support for multiple token types (EMAIL_VERIFICATION, PASSWORD_RESET)
    - Token expiration and invalidation mechanisms
    - Single-use tracking for sensitive tokens
 
-4. **OAuth Integration**:
-   - Support for multiple social providers (GOOGLE, GITHUB, FACEBOOK, TWITTER, APPLE)
-   - Provider-specific user ID mapping
-
-5. **Security Features**:
+4. **Security Features**:
    - CSRF protection through secure cookies
    - Password hashing using bcrypt
-   - Brute force protection (account locking)
    - Audit logging for security events
 
 ### Authorization System
@@ -46,7 +39,7 @@ The project implements a robust authentication system with the following compone
 The project implements a comprehensive RBAC (Role-Based Access Control) with PBAC (Permission-Based Access Control) overlay:
 
 1. **Role System**:
-   - Predefined roles (USER, EDITOR, MANAGER, ADMIN)
+   - Simplified role structure (USER, ADMIN)
    - Role-based routing and middleware protection
 
 2. **Permission System**:
@@ -57,284 +50,388 @@ The project implements a comprehensive RBAC (Role-Based Access Control) with PBA
 
 3. **Middleware**:
    - Route protection based on authentication status
-   - Authorization middleware integration
+   - Route categorization (public, dashboard, admin-only)
+   - JWT verification and validation
+   - Role-based access enforcement
 
-4. **Resource Protection**:
-   - Object-level authorization (e.g., post ownership checks)
-   - API route protection 
+## Current Implementation Strengths
 
-## Strengths
+1. **JWT-Based Authentication**:
+   - Secure token generation and validation
+   - Cookie-based token storage with security options
+   - Proper expiration and refresh mechanisms
 
-1. **Comprehensive Database Schema**:
-   - Well-designed relations between users, roles, permissions, and resources
-   - Proper indexing for performance
-   - Clear separation of concerns
+2. **Role-Based Authorization**:
+   - Clear separation between USER and ADMIN roles
+   - Middleware-enforced route protection
+   - Granular permission system for fine-grained access control
 
-2. **Security-First Approach**:
-   - Proper password hashing
-   - JWT with expiration
-   - Session tracking and management
-   - Audit logging for security events
+3. **Security Features**:
+   - Password hashing with bcrypt
+   - Secure session management
+   - CSRF protection
+   - Audit logging
 
-3. **Flexible Authorization**:
-   - Combined RBAC and PBAC for fine-grained access control
-   - Support for user-specific permission overrides
+4. **User Experience**:
+   - Login redirect with callback URL preservation
+   - Email verification workflow
+   - Password reset functionality
 
-4. **Middleware Implementation**:
-   - Clear route protection
-   - Centralized authentication checks
+## Current Implementation Issues
 
-5. **Audit Trail**:
-   - Comprehensive logging of security-related events
-   - IP and user agent tracking for forensic purposes
+1. **Dashboard Access Control Problem**:
+   - Dashboard routes are currently misconfigured in the middleware
+   - Regular users with USER role are incorrectly being redirected
+   - The logs show repeated redirect attempts when users try to access '/dashboard'
 
-## Weaknesses and Improvement Areas
+2. **API Route Protection**:
+   - Some API routes may not be properly categorized in the middleware
+   - Authentication checks may be bypassed for some API endpoints
 
-1. **Two-Factor Authentication**:
-   - Structure exists but implementation appears incomplete
-   - Missing TOTP or other 2FA method implementation
+3. **Middleware Configuration**:
+   - Some routes are missing from public routes list
+   - Admin routes may be overly restrictive
+   - Dashboard routes should be accessible to all authenticated users
 
-2. **Session Security**:
-   - JWT secret management could be improved
-   - Missing strict same-site and HTTP-only flags for cookies in some places
+4. **JWT Secret Management**:
+   - Fallback secret being used when environment variable is missing
+   - Potential security risk in development environments
 
-3. **Rate Limiting**:
-   - Limited or no implementation for login attempts
-   - API endpoint rate limiting is not evident
+## Recommended Immediate Fixes
 
-4. **Input Validation**:
-   - While Zod validation exists, it could be applied more consistently
+### 1. Fix Dashboard Access for Regular Users
 
-5. **Error Handling**:
-   - Some error messages might leak sensitive information
-
-6. **Authorization Caching**:
-   - Permission checks could benefit from caching for performance
-
-7. **Token Management**:
-   - No evident token rotation policy
-   - API key management lacks comprehensive revocation
-
-## Recommendations
-
-### Short-term Improvements
-
-1. **Complete Two-Factor Authentication**:
-   ```typescript
-   // Example implementation for TOTP verification
-   export async function verifyTOTP(
-     userId: string, 
-     token: string
-   ): Promise<boolean> {
-     const user = await prisma.user.findUnique({
-       where: { id: userId },
-       select: { 
-         id: true,
-         twoFactorSecret: true,
-         twoFactorEnabled: true
-       }
-     });
-     
-     if (!user?.twoFactorEnabled || !user?.twoFactorSecret) {
-       return false;
-     }
-     
-     return authenticator.verify({
-       token,
-       secret: user.twoFactorSecret
-     });
-   }
-   ```
-
-2. **Strengthen Cookie Security**:
-   ```typescript
-   // In session/constants.ts
-   export const DEFAULT_SESSION_OPTIONS: SessionOptions = {
-     maxAge: 60 * 60 * 24 * 7, // 7 days
-     httpOnly: true,
-     secure: process.env.NODE_ENV === 'production',
-     path: '/',
-     sameSite: 'strict',
-   };
-   ```
-
-3. **Implement Rate Limiting**:
-   ```typescript
-   // Example rate limiting middleware
-   export async function rateLimit(
-     request: NextRequest,
-     options: { limit: number; window: number; key?: string }
-   ) {
-     const ip = request.headers.get('x-forwarded-for') || 'unknown';
-     const key = options.key || `ratelimit:${ip}`;
-     
-     // Use Redis or similar for distributed rate limiting
-     const current = await redis.incr(key);
-     if (current === 1) {
-       await redis.expire(key, options.window);
-     }
-     
-     if (current > options.limit) {
-       return NextResponse.json(
-         { error: 'Too many requests' },
-         { status: 429 }
-       );
-     }
-     
-     return null; // No rate limit hit
-   }
-   ```
-
-### Medium-term Improvements
-
-1. **Permission Caching**:
-   ```typescript
-   // In authorization/permissions.ts
-   import NodeCache from 'node-cache';
-   const permissionCache = new NodeCache({ stdTTL: 300 }); // 5 minutes
-   
-   export async function hasPermission(permissionName: string): Promise<boolean> {
-     const session = await getSession();
-     if (!session) return false;
-     
-     const cacheKey = `${session.userId}:${permissionName}`;
-     const cachedResult = permissionCache.get<boolean>(cacheKey);
-     
-     if (cachedResult !== undefined) {
-       return cachedResult;
-     }
-     
-     // Existing permission check logic...
-     
-     permissionCache.set(cacheKey, result);
-     return result;
-   }
-   ```
-
-2. **Comprehensive Audit Logging**:
-   ```typescript
-   // Example enhanced audit logging for Post model
-   export async function createPost(formData: FormData): Promise<PostResult> {
-     const session = await getSession();
-     // ...existing code...
-     
-     const post = await prisma.post.create({
-       // ...existing code...
-     });
-     
-     // Add audit log
-     await prisma.auditLog.create({
-       data: {
-         userId: session.userId,
-         action: 'CREATE',
-         resource: 'Post',
-         resourceId: post.id,
-         ipAddress: request.headers.get('x-forwarded-for') || undefined,
-         userAgent: request.headers.get('user-agent') || undefined,
-         metadata: JSON.stringify({
-           title: post.title,
-           categoryId: post.categoryId,
-           status: post.status
-         })
-       }
-     });
-     
-     // ...existing code...
-   }
-   ```
-
-### Long-term Security Roadmap
-
-1. **Security Headers Implementation**:
-   - Content-Security-Policy
-   - Strict-Transport-Security
-   - X-Content-Type-Options
-   - X-Frame-Options
-   - Referrer-Policy
-
-2. **API Key Rotation Policy**:
-   - Implement automatic API key rotation
-   - Allow multiple active API keys with different scopes
-
-3. **Session Device Management**:
-   - Provide users with active session list
-   - Allow remote session termination
-
-4. **Progressive Permission Model**:
-   - Implement time-based permission escalation
-   - Just-in-time permission approvals for sensitive actions
-
-5. **Security Monitoring Dashboard**:
-   - Visual representation of login attempts
-   - Anomaly detection for unusual access patterns
-   - Geographic access visualization
-
-## Example Implementation: Post Management Security
-
-The Post management implementation provides a good example of properly secured resource management:
+The middleware logs show that regular users with the USER role are being incorrectly identified as attempting to access admin routes when visiting '/dashboard'. The fix is to:
 
 ```typescript
-// Post creation with proper authorization
-export async function createPost(formData: FormData): Promise<PostResult> {
-  try {
-    const session = await getSession();
-    if (!session || !session?.userId) {
-      return { success: false, error: "Unauthorized: Please log in" };
-    }
-    
-    // Permission check (example)
-    const canCreatePost = await can('create', 'posts');
-    if (!canCreatePost) {
-      return { success: false, error: "Not authorized to create posts" };
-    }
-    
-    // Validated data using Zod schema
-    const validation = postSchema.safeParse(rawData);
-    if (!validation.success) {
-      return { success: false, error: "Invalid form data" };
-    }
-    
-    const validatedData = validation.data;
-    
-    // Creating the post with proper user association
-    const post = await prisma.post.create({
-      data: {
-        // ...post data...
-        authorId: session.userId,
-        // ...other fields...
-      },
-    });
-    
-    // Audit logging
-    await prisma.auditLog.create({
-      data: {
-        userId: session.userId,
-        action: 'CREATE',
-        resource: 'Post',
-        resourceId: post.id,
-        // ...metadata...
-      }
-    });
-    
-    return { success: true, postId: post.id };
-  } catch (error) {
-    // Proper error handling
-    console.error("Post creation error:", error);
-    return { success: false, error: "Failed to create post" };
+// Update isAdminRoute function to properly exclude dashboard routes
+function isAdminRoute(path: string): boolean {
+  // First check if it's a dashboard route (which is not admin-only)
+  if (isDashboardRoute(path)) {
+    return false;
   }
+  
+  // Then check if it's in the admin routes list
+  return adminRoutes.some(route => path.startsWith(route));
 }
 ```
 
-This pattern demonstrates:
-1. Authentication check via session
-2. Authorization check via permission system
-3. Input validation with Zod
-4. Secure database operations
-5. Audit logging
-6. Proper error handling and response formatting
+Alternatively, remove '/dashboard' from the adminRoutes array if it's incorrectly included.
+
+### 2. Update Route Categorization
+
+Ensure API routes are properly categorized:
+
+```typescript
+// Add missing API routes to the public routes array
+const publicRoutes = [
+  '/login',
+  '/register',
+  '/verify-email',
+  '/reset-password',
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/logout',
+  '/api/auth/check',
+  '/api/auth/session',
+  '/api/auth/verify-email',
+  '/api/auth/reset-password',
+  '/api/upload-chunk' // For file uploads
+];
+```
+
+### 3. Ensure JWT Secret Security
+
+Improve JWT secret management:
+
+```typescript
+// In middleware.ts
+const secretKey = process.env.JWT_SECRET;
+if (!secretKey) {
+  console.error('JWT_SECRET is not set! This is a critical security issue in production.');
+  // In production, you might want to terminate the application
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET environment variable is required in production');
+  }
+  // Use a fallback only in development
+  secretKey = 'fallback-secret-for-development-only';
+}
+```
+
+## Medium-Term Improvements
+
+### 1. Enhanced Error Handling
+
+Improve error visibility and troubleshooting:
+
+```typescript
+// Add structured error logging
+function logAuthError(error: unknown, context: string) {
+  const errorMessage = error instanceof Error 
+    ? error.message 
+    : 'Unknown error';
+    
+  console.error(`[Auth Error] ${context}: ${errorMessage}`, {
+    timestamp: new Date().toISOString(),
+    context,
+    error: process.env.NODE_ENV === 'development' ? error : errorMessage
+  });
+}
+```
+
+### 2. Rate Limiting for Authentication
+
+Implement rate limiting to prevent brute force attacks:
+
+```typescript
+import { rateLimit } from '@/lib/rate-limit';
+
+// In login handler
+export async function POST(request: NextRequest) {
+  // Get IP for rate limiting
+  const ip = request.headers.get('x-forwarded-for') || 'unknown';
+  
+  // Check rate limit (5 attempts per minute)
+  const rateLimited = await rateLimit(`login:${ip}`, 5, 60);
+  if (rateLimited) {
+    return NextResponse.json(
+      { error: 'Too many login attempts. Please try again later.' },
+      { status: 429 }
+    );
+  }
+  
+  // Continue with login logic...
+}
+```
+
+### 3. Permission Caching
+
+Add caching for permission checks to improve performance:
+
+```typescript
+import NodeCache from 'node-cache';
+
+const permissionCache = new NodeCache({ stdTTL: 300 }); // 5 minutes
+
+export async function hasPermission(userId: string, permission: string): Promise<boolean> {
+  const cacheKey = `${userId}:${permission}`;
+  
+  // Check cache first
+  const cachedResult = permissionCache.get(cacheKey);
+  if (cachedResult !== undefined) {
+    return cachedResult as boolean;
+  }
+  
+  // If not in cache, check database
+  const result = await checkPermissionInDatabase(userId, permission);
+  
+  // Cache the result
+  permissionCache.set(cacheKey, result);
+  
+  return result;
+}
+```
+
+### 4. Comprehensive Audit Logging
+
+Enhance security event logging:
+
+```typescript
+export async function logSecurityEvent(event: {
+  userId: string;
+  action: 'LOGIN' | 'LOGOUT' | 'PASSWORD_CHANGE' | 'ACCESS_DENIED' | 'PERMISSION_CHANGE';
+  resource?: string;
+  resourceId?: string;
+  details?: Record<string, any>;
+  ipAddress?: string;
+  userAgent?: string;
+}) {
+  await prisma.securityLog.create({
+    data: {
+      userId: event.userId,
+      action: event.action,
+      resource: event.resource,
+      resourceId: event.resourceId,
+      details: event.details ? JSON.stringify(event.details) : null,
+      ipAddress: event.ipAddress,
+      userAgent: event.userAgent,
+      timestamp: new Date()
+    }
+  });
+}
+```
+
+## Long-Term Security Roadmap
+
+### 1. Implement Two-Factor Authentication
+
+Add TOTP-based two-factor authentication:
+
+```typescript
+// Example implementation for 2FA setup and verification
+export async function setupTOTP(userId: string): Promise<{ secret: string; uri: string }> {
+  const secret = authenticator.generateSecret();
+  const uri = authenticator.keyuri(userId, 'WebAuth App', secret);
+  
+  await prisma.user.update({
+    where: { id: userId },
+    data: { 
+      twoFactorSecret: secret,
+      twoFactorEnabled: false // Requires verification first
+    }
+  });
+  
+  return { secret, uri };
+}
+
+export async function verifyAndEnableTOTP(userId: string, token: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { twoFactorSecret: true }
+  });
+  
+  if (!user?.twoFactorSecret) return false;
+  
+  const isValid = authenticator.verify({ token, secret: user.twoFactorSecret });
+  
+  if (isValid) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { twoFactorEnabled: true }
+    });
+  }
+  
+  return isValid;
+}
+```
+
+### 2. Enhanced Session Management
+
+Implement session awareness and device tracking:
+
+```typescript
+// Enhanced session creation with device awareness
+export async function createSession(user: SessionUser, request: Request): Promise<void> {
+  const userAgent = request.headers.get('user-agent') || 'Unknown';
+  const ipAddress = request.headers.get('x-forwarded-for') || 'Unknown';
+  
+  // Generate a unique session ID
+  const sessionId = crypto.randomUUID();
+  
+  // Store session in database for tracking
+  await prisma.activeSession.create({
+    data: {
+      id: sessionId,
+      userId: user.userId,
+      userAgent,
+      ipAddress,
+      lastActive: new Date(),
+      expiresAt: new Date(Date.now() + SESSION_CONSTANTS.MAX_AGE * 1000)
+    }
+  });
+  
+  // Create JWT with session ID reference
+  const jwt = await generateJWT({
+    ...user,
+    sessionId
+  });
+  
+  // Set cookie as before
+  cookies().set(SESSION_CONSTANTS.COOKIE_NAME, jwt, DEFAULT_SESSION_OPTIONS);
+}
+
+// Session management UI to allow users to view and terminate sessions
+export async function listActiveSessions(userId: string) {
+  return prisma.activeSession.findMany({
+    where: {
+      userId,
+      expiresAt: { gt: new Date() }
+    },
+    orderBy: { lastActive: 'desc' }
+  });
+}
+
+export async function terminateSession(userId: string, sessionId: string) {
+  return prisma.activeSession.delete({
+    where: {
+      id: sessionId,
+      userId // Ensure user can only terminate their own sessions
+    }
+  });
+}
+```
+
+### 3. API Key Management
+
+Implement secure API key generation and management for programmatic access:
+
+```typescript
+// Generate secure API key
+export async function generateApiKey(userId: string, name: string, permissions: string[]): Promise<string> {
+  // Generate a secure random key
+  const apiKey = `ak_${crypto.randomUUID().replace(/-/g, '')}`;
+  const hashedKey = await bcrypt.hash(apiKey, 10);
+  
+  // Store the hashed key in database
+  await prisma.apiKey.create({
+    data: {
+      userId,
+      name,
+      key: hashedKey,
+      permissions,
+      lastUsed: null,
+      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
+    }
+  });
+  
+  // Return the plain key (will only be shown once)
+  return apiKey;
+}
+
+// API key middleware for verification
+export async function validateApiKey(request: NextRequest): Promise<{
+  valid: boolean;
+  userId?: string;
+  permissions?: string[];
+}> {
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { valid: false };
+  }
+  
+  const apiKey = authHeader.substring(7);
+  
+  // Find all active API keys
+  const allApiKeys = await prisma.apiKey.findMany({
+    where: {
+      expiresAt: { gt: new Date() }
+    }
+  });
+  
+  // Check each key (since we can't query by hashed value)
+  for (const storedKey of allApiKeys) {
+    const match = await bcrypt.compare(apiKey, storedKey.key);
+    if (match) {
+      // Update last used timestamp
+      await prisma.apiKey.update({
+        where: { id: storedKey.id },
+        data: { lastUsed: new Date() }
+      });
+      
+      return {
+        valid: true,
+        userId: storedKey.userId,
+        permissions: storedKey.permissions
+      };
+    }
+  }
+  
+  return { valid: false };
+}
+```
 
 ## Conclusion
 
-The current authentication and authorization implementation provides a solid foundation for application security. By addressing the identified improvement areas and following the recommended enhancements, the system can achieve an enterprise-grade security posture that balances usability with strong protection against common threats.
+This analysis identifies several immediate issues that need to be addressed, particularly with dashboard access for regular users and API route categorization. The middleware logs reveal that there's confusion in the role-based access control system that needs to be fixed.
 
-Regular security reviews and penetration testing are recommended to ensure continued effectiveness of the security controls as the application evolves. 
+By implementing the suggested fixes and following the medium and long-term improvement roadmap, the application's authentication and authorization system will be more secure, reliable, and maintainable. 

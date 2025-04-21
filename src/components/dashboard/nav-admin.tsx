@@ -1,80 +1,59 @@
-"use client"
+"use client";
 
-import {
-  IconDots,
-  IconFolder,
-  IconShare3,
-  IconTrash,
-  IconChevronDown,
-  type Icon,
-} from "@tabler/icons-react"
+import { IconDots, IconChevronDown, type Icon } from "@tabler/icons-react";
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
-} from "@/components/ui/sidebar"
-import Link from "next/link"
-import { useState } from "react"
+} from "@/components/ui/sidebar";
+import Link from "next/link";
+import { useState } from "react";
 
 interface AdminItem {
-  name: string
-  url: string
-  icon: Icon
+  name: string;
+  url: string;
+  icon: Icon;
   submenu?: {
-    name: string
-    url: string
-    icon?: Icon
-  }[]
+    name: string;
+    url: string;
+    icon?: Icon;
+  }[];
 }
 
-export function NavAdmin({
-  items,
-}: {
-  items: AdminItem[]
-}) {
-  const { isMobile } = useSidebar()
-  const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({})
+export function NavAdmin({ items }: { items: AdminItem[] }) {
+  const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({});
 
   const toggleSubmenu = (name: string) => {
     // Close other submenus when opening a new one
-    setOpenSubmenus(prev => {
+    setOpenSubmenus((prev) => {
       const newState = { ...prev };
-      
+
       // If this menu is being opened, close all others
       if (!prev[name]) {
-        Object.keys(newState).forEach(key => {
+        Object.keys(newState).forEach((key) => {
           if (key !== name) newState[key] = false;
         });
       }
-      
+
       // Toggle the current menu
       newState[name] = !prev[name];
       return newState;
     });
-  }
+  };
 
   // Create an array with menu items and their submenu items grouped together
   const renderMenuItems = () => {
     const result: React.ReactNode[] = [];
-    
+
     items.forEach((item) => {
       // Add the main menu item
       result.push(
         <SidebarMenuItem key={item.name}>
           {item.submenu ? (
-            <SidebarMenuButton 
+            <SidebarMenuButton
               onClick={() => toggleSubmenu(item.name)}
               className="flex justify-between items-center w-full"
             >
@@ -82,8 +61,8 @@ export function NavAdmin({
                 <item.icon className="text-sidebar-foreground/70" size={16} />
                 <span className="text-sm">{item.name}</span>
               </div>
-              <IconChevronDown 
-                className={`h-4 w-4 transition-transform ${openSubmenus[item.name] ? 'rotate-180' : ''}`} 
+              <IconChevronDown
+                className={`h-4 w-4 transition-transform ${openSubmenus[item.name] ? "rotate-180" : ""}`}
               />
             </SidebarMenuButton>
           ) : (
@@ -98,12 +77,15 @@ export function NavAdmin({
           )}
         </SidebarMenuItem>
       );
-      
+
       // Add submenu items immediately after their parent
       if (item.submenu && openSubmenus[item.name]) {
         // Add a visual indicator for submenu group
         result.push(
-          <div key={`${item.name}-submenu-group`} className="pl-5 border-l border-gray-200 dark:border-gray-700 ml-4 my-1">
+          <div
+            key={`${item.name}-submenu-group`}
+            className="pl-5 border-l border-gray-200 dark:border-gray-700 ml-4 my-1"
+          >
             {item.submenu.map((subItem) => (
               <SidebarMenuItem key={`${item.name}-${subItem.name}`}>
                 <SidebarMenuButton asChild className="pl-3">
@@ -118,7 +100,7 @@ export function NavAdmin({
         );
       }
     });
-    
+
     // Add the "More" item at the end
     result.push(
       <SidebarMenuItem key="more-menu-item">
@@ -128,16 +110,14 @@ export function NavAdmin({
         </SidebarMenuButton>
       </SidebarMenuItem>
     );
-    
+
     return result;
   };
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>Admin</SidebarGroupLabel>
-      <SidebarMenu>
-        {renderMenuItems()}
-      </SidebarMenu>
+      <SidebarMenu>{renderMenuItems()}</SidebarMenu>
     </SidebarGroup>
   );
 }

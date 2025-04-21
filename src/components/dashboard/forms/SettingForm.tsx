@@ -2,7 +2,6 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import {
   Form,
   FormControl,
@@ -16,35 +15,30 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
+import { SettingFormData, settingSchema } from "@/types/setting";
 
-// Setting schema for validation
-const settingSchema = z.object({
-  id: z.string().optional(),
-  key: z.string().min(2, "Key must be at least 2 characters"),
-  value: z.string().min(1, "Value is required"),
-  category: z.string().min(2, "Category must be at least 2 characters"),
-  description: z.string().optional(),
-  isPublic: z.boolean().default(false),
-});
-
-type FormData = z.infer<typeof settingSchema>;
+// Define type for react-hook-form resolver
+import type { Resolver } from "react-hook-form";
 
 interface SettingFormProps {
-  initialData?: FormData;
+  initialData?: SettingFormData;
   categories?: string[];
-  onSubmit: (data: FormData) => void;
+  onSubmit: (data: SettingFormData) => void;
   isSubmitting?: boolean;
 }
-
 export function SettingForm({
   initialData,
   categories = [],
   onSubmit,
   isSubmitting = false,
 }: SettingFormProps) {
-  const form = useForm<FormData>({
-    resolver: zodResolver(settingSchema),
+  // Use type assertion that specifically addresses the resolver typing issue
+  const resolver = zodResolver(settingSchema) as Resolver<SettingFormData>;
+  
+  const form = useForm<SettingFormData>({
+    resolver,
     defaultValues: initialData || {
       key: "",
       value: "",
@@ -59,13 +53,14 @@ export function SettingForm({
     !categories.includes(form.getValues().category) && form.getValues().category !== ""
   );
 
-  const handleSubmit = async (data: FormData) => {
+  // Use the correct type for the submit handler
+  const handleSubmit = form.handleSubmit((data) => {
     onSubmit(data);
-  };
+  });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <FormField
           control={form.control}
           name="key"
@@ -79,7 +74,7 @@ export function SettingForm({
                 />
               </FormControl>
               <FormDescription>
-                A unique identifier for this setting (e.g., "site.title")
+                A unique identifier for this setting (e.g., &quot;site.title&quot;)
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -115,7 +110,7 @@ export function SettingForm({
                   <div className="flex items-center space-x-2 mb-2">
                     <Switch
                       checked={isCustomCategory}
-                      onCheckedChange={(checked) => {
+                      onCheckedChange={(checked: boolean) => {
                         setIsCustomCategory(checked);
                         if (!checked && categories.length > 0) {
                           form.setValue("category", categories[0]);
@@ -131,18 +126,21 @@ export function SettingForm({
                         {...field}
                       />
                     ) : (
-                      <select
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={field.value}
-                        onChange={(e) => field.onChange(e.target.value)}
+                      <Select 
+                        value={field.value} 
+                        onValueChange={field.onChange}
                       >
-                        <option value="">Select a category</option>
-                        {categories.map((category) => (
-                          <option key={category} value={category}>
-                            {category}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     )}
                   </FormControl>
                   <FormMessage />

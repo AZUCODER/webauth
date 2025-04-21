@@ -5,7 +5,6 @@ import {
   IconDotsVertical,
   IconLogout,
   IconNotification,
-  IconUserCircle,
   IconUserScan,
 } from "@tabler/icons-react";
 
@@ -57,7 +56,7 @@ export function NavUser() {
         .map((n) => n[0])
         .join("")
         .toUpperCase()
-    : "/avatars/avatar.jpg";
+    : "U";
 
   return (
     <SidebarMenu>
@@ -111,12 +110,6 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <Link href="/users">
-                <DropdownMenuItem>
-                  <IconUserCircle className="mr-2 size-4" />
-                  Account
-                </DropdownMenuItem>
-              </Link>
               <Link href="/profile">
                 <DropdownMenuItem>
                   <IconUserScan className="mr-2 size-4" />

@@ -27,6 +27,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { SettingFormData } from '@/types/setting';
+
+// Define a Setting type that extends SettingFormData with database fields
+interface DatabaseSetting extends Omit<SettingFormData, 'id'> {
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 interface EditSettingPageProps {
   params: Promise<{
@@ -36,7 +44,7 @@ interface EditSettingPageProps {
 
 export default function EditSettingPage({ params }: EditSettingPageProps) {
   const router = useRouter();
-  const [setting, setSetting] = useState<any>(null);
+  const [setting, setSetting] = useState<DatabaseSetting | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,7 +66,7 @@ export default function EditSettingPage({ params }: EditSettingPageProps) {
           return;
         }
         
-        setSetting(settingResult.setting);
+        setSetting(settingResult.setting as DatabaseSetting);
         
         // Fetch categories
         const categoriesResult = await getSettingCategories();
@@ -76,7 +84,7 @@ export default function EditSettingPage({ params }: EditSettingPageProps) {
     loadData();
   }, [id]);
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: SettingFormData) => {
     setIsSubmitting(true);
     try {
       const result = await updateSetting(id, data);
@@ -167,7 +175,14 @@ export default function EditSettingPage({ params }: EditSettingPageProps) {
             </div>
           ) : (
             <SettingForm
-              initialData={setting}
+              initialData={setting ? {
+                id: setting.id,
+                key: setting.key,
+                value: setting.value,
+                category: setting.category,
+                description: setting.description,
+                isPublic: setting.isPublic
+              } : undefined}
               categories={categories}
               onSubmit={handleSubmit}
               isSubmitting={isSubmitting}

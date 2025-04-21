@@ -8,12 +8,10 @@ interface EditPostPageProps {
   params: Promise<{
     id: string;
   }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export default async function EditPostPage({ 
-  params,
-  searchParams 
+  params
 }: EditPostPageProps) {
   // Check for session first
   const session = await getSession();

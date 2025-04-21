@@ -1,19 +1,19 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session/manager";
-import { getPermissions } from "@/actions/admin/permissionActions";
+import { getPaginatedPermissions } from "@/actions/admin/permissionActions";
 import { PermissionTable } from "@/components/dashboard/tables/PermissionTable";
 import { PermissionData } from "@/types/permission";
 
-interface PageProps {
+export default async function PermissionsPage({ 
+  searchParams 
+}: { 
   searchParams?: {
     page?: string;
     pageSize?: string;
     search?: string;
     resource?: string;
-  };
-}
-
-export default async function PermissionsPage({ searchParams }: PageProps) {
+  }
+}) {
   // Check if user is logged in and is admin
   const session = await getSession();
 
@@ -21,13 +21,31 @@ export default async function PermissionsPage({ searchParams }: PageProps) {
     redirect("/dashboard");
   }
 
-  // Get all permissions
-  const result = await getPermissions();
+  // Parse search parameters
+  const page = searchParams?.page ? parseInt(searchParams.page) : 1;
+  const pageSize = searchParams?.pageSize ? parseInt(searchParams.pageSize) : 10;
+  const search = searchParams?.search || "";
+  const resourceFilter = searchParams?.resource || "";
 
-  const permissions: PermissionData[] =
-    result.success && Array.isArray(result.permission)
-      ? (result.permission as PermissionData[])
-      : [];
+  // Get permissions with pagination and filters
+  const result = await getPaginatedPermissions(
+    page,
+    pageSize,
+    search,
+    resourceFilter
+  );
+
+  const permissions: PermissionData[] = result.success && result.permissions
+    ? result.permissions as PermissionData[]
+    : [];
+
+  // Prepare pagination data
+  const pagination = {
+    currentPage: page,
+    pageSize: pageSize,
+    totalItems: result.totalCount || 0,
+    totalPages: result.totalPages || 1
+  };
 
   return (
     <div className="container mx-auto py-6">
@@ -38,7 +56,11 @@ export default async function PermissionsPage({ searchParams }: PageProps) {
       <div className="grid grid-cols-1 gap-6 mt-4">
         <div className="bg-card rounded-sm shadow">
           <div className="p-6">
-            <PermissionTable permissions={permissions} />
+            <PermissionTable 
+              permissions={permissions}
+              pagination={pagination} 
+              initialFilters={{ search, resource: resourceFilter }}
+            />
           </div>
         </div>
       </div>

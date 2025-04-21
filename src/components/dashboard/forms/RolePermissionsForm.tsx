@@ -49,9 +49,7 @@ export function RolePermissionsForm({
     // Define permissions that are critical for each role
     const roleCriticalPermissions: Record<string, string[]> = {
       'ADMIN': [], // Admins have all permissions implicitly
-      'MANAGER': ['user:view', 'user:create', 'role:view', 'permission:view'],
-      'EDITOR': ['post:create', 'post:edit', 'post:delete', 'post:publish'],
-      'USER': ['profile:view', 'profile:edit']
+      'USER': ['profile:view', 'profile:update', 'posts:read', 'posts:create']
     };
     
     // Find the permission IDs for the critical permissions
@@ -138,7 +136,8 @@ export function RolePermissionsForm({
       } else {
         toast.error(result.message || 'Failed to update permissions.');
       }
-    } catch (error) {
+    } catch (err) {
+      console.error('Error updating role permissions:', err);
       toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -154,7 +153,7 @@ export function RolePermissionsForm({
       {!canEdit && (
         <div className="p-4 mb-4 bg-red-50 text-red-700 border border-red-200 rounded-md flex items-center">
           <AlertTriangle className="mr-2 h-5 w-5" />
-          <span>You don't have permission to edit these role permissions.</span>
+          <span>You don&apos;t have permission to edit these role permissions.</span>
         </div>
       )}
       

@@ -19,7 +19,7 @@ export default async function UsersPage() {
   const users: User[] = result.success && Array.isArray(result.user) 
     ? result.user.map(user => ({
         ...user,
-        role: user.role as "USER" |"EDITOR"|"MANAGER"| "ADMIN" // Type assertion since we validate roles in the API
+        role: user.role as "USER" |"ADMIN" // Type assertion since we validate roles in the API
       }))
     : [];
   

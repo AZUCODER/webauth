@@ -4,6 +4,26 @@ import React, { useEffect } from 'react';
 import { useSettingsFilters } from './action';
 import { SettingsTable } from '@/components/dashboard/tables/SettingsTable';
 
+// Define the Setting type to match the one from the client.tsx file
+interface Setting {
+  id: string;
+  key: string;
+  value: string;
+  category: string;
+  description: string | null;
+  isPublic: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Define the pagination type
+interface Pagination {
+  page: number;
+  limit: number;
+  totalPages: number;
+  totalItems: number;
+}
+
 interface SettingsFilterClientProps {
   children: React.ReactElement;
   initialFilters: {
@@ -17,17 +37,27 @@ export function SettingsFilterClient({
   initialFilters 
 }: SettingsFilterClientProps) {
   const { setPage, setFilters } = useSettingsFilters();
-
-  // Process initial filters for the UI
-  const processedFilters = {
-    ...initialFilters,
-    category: initialFilters.category || "all"
-  };
+  
+  // Apply initial filters when component mounts - outside conditional to follow hooks rules
+  useEffect(() => {
+    if (initialFilters.search || initialFilters.category) {
+      setFilters({
+        search: initialFilters.search,
+        category: initialFilters.category
+      });
+    }
+  }, [initialFilters, setFilters]);
 
   // Make sure children is a SettingsTable component
   if (React.isValidElement(children) && children.type === SettingsTable) {
     // Get the props from the original component
-    const { settings, categories, pagination, onEdit, onDelete } = children.props;
+    const { settings, categories, pagination, onEdit, onDelete } = children.props as {
+      settings: Setting[];
+      categories: string[];
+      pagination: Pagination;
+      onEdit?: (setting: Setting) => void;
+      onDelete?: (id: string) => void;
+    };
 
     // Create a new component with the event handlers
     return (
@@ -37,6 +67,7 @@ export function SettingsFilterClient({
         pagination={pagination}
         onEdit={onEdit}
         onDelete={onDelete}
+        initialFilters={initialFilters}
         onPageChange={(page: number) => {
           setPage(page);
         }}

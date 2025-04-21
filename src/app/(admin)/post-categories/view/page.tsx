@@ -6,8 +6,6 @@ import { PlusCircle } from "lucide-react";
 import { getSession } from "@/lib/session/manager";
 import { redirect } from "next/navigation";
 
-
-
 export default async function CategoriesPage({
   searchParams,
 }: {
@@ -23,7 +21,7 @@ export default async function CategoriesPage({
   if (session.role !== "ADMIN") {
     redirect("/dashboard");
   }
-  
+
   // Await searchParams before accessing its properties
   const resolvedParams = await searchParams;
   const page = Number(resolvedParams.page) || 1;
@@ -37,24 +35,17 @@ export default async function CategoriesPage({
         <div className="flex flex-col">
           <h1 className="text-2xl font-bold">Post Categories</h1>
           <p className="text-gray-500 mt-1">
-           Manage post categories to orgnize posts well
+            Manage post categories to orgnize posts well
           </p>
         </div>
         <div className="flex gap-2">
           <Link href="/post-categories/add">
-          <Button className="flex items-center gap-1" size="sm">
-            <PlusCircle className="h-4 w-4" />
-            Add Category
-          </Button>
-        </Link>
-        <Link href="/posts/add">
-          <Button className="flex items-center gap-1" size="sm" variant="ghost">
-            <PlusCircle className="h-4 w-4" />
-            Add Post
-          </Button>
-        </Link>
+            <Button className="flex items-center gap-1" size="sm">
+              <PlusCircle className="h-4 w-4" />
+              Add Category
+            </Button>
+          </Link>
         </div>
-          
       </div>
 
       {categoriesData ? (
@@ -66,9 +57,11 @@ export default async function CategoriesPage({
         </div>
       ) : (
         <div className="text-center py-10 bg-white rounded-lg shadow-sm">
-          <p className="text-gray-500">Post category loading failed, please try again</p>
-          <Button 
-            variant="outline" 
+          <p className="text-gray-500">
+            Post category loading failed, please try again
+          </p>
+          <Button
+            variant="outline"
             className="mt-4"
             onClick={() => window.location.reload()}
           >

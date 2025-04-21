@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { PostStatus } from "@prisma/client";
 import { hasPermission } from '@/lib/authorization/permissions';
-import { logAuditEvent, safeStringify } from '@/lib/audit/auditLogger';
+import { logAuditEvent } from '@/lib/audit/auditLogger';
 
 import slugify from 'slugify';
 import { postSchema } from "@/types/post";
@@ -26,7 +26,7 @@ export async function createPost(formData: FormData): Promise<PostResult> {
         }
 
         // Check if user has permission to create posts
-        const canCreatePost = await hasPermission('post:create');
+        const canCreatePost = await hasPermission('posts:create');
         if (!canCreatePost) {
             return { success: false, error: "You don't have permission to create posts." };
         }
@@ -144,19 +144,25 @@ export async function getPosts(page = 1, limit = 10, status?: PostStatus) {
         }
 
         // Check if user has permission to view posts
-        const canViewPosts = await hasPermission('post:view');
+        const canViewPosts = await hasPermission('posts:read');
         if (!canViewPosts) {
             return null;
         }
 
         const skip = (page - 1) * limit;
 
+        // Define the where type for Prisma filter
+        type PostWhereInput = {
+            authorId?: string;
+            status?: PostStatus;
+        };
+
         // Determine filter based on permissions and role
-        let where: any = {};
+        const where: PostWhereInput = {};
         
         // If the user is not an admin, only show their own posts unless they have post:view-all permission
         const isAdmin = session.role === 'ADMIN';
-        const canViewAllPosts = await hasPermission('post:view-all');
+        const canViewAllPosts = await hasPermission('posts:read');
         
         if (!isAdmin && !canViewAllPosts) {
             where.authorId = session.userId;
@@ -219,7 +225,7 @@ export async function getPostBySlug(slug: string) {
         if (!session?.userId) return null;
 
         // Check if user has permission to view posts
-        const canViewPosts = await hasPermission('post:view');
+        const canViewPosts = await hasPermission('posts:read');
         if (!canViewPosts) {
             return null;
         }
@@ -245,7 +251,7 @@ export async function getPostBySlug(slug: string) {
         // Check if user is authorized to view this post
         const isAuthor = post.authorId === session.userId;
         const isAdmin = session.role === 'ADMIN';
-        const canViewAllPosts = await hasPermission('post:view-all');
+        const canViewAllPosts = await hasPermission('posts:read');
         const isPublished = post.status === 'PUBLISHED';
 
         if (!isAuthor && !isAdmin && !canViewAllPosts && !isPublished) {
@@ -279,8 +285,8 @@ export async function updatePost(postId: string, formData: FormData): Promise<Po
         // Check permissions:
         // 1. Users with 'post:update-all' permission can update any post
         // 2. Post authors can update their own posts if they have 'post:update' permission
-        const canUpdateAllPosts = await hasPermission('post:update-all');
-        const canUpdateOwnPosts = await hasPermission('post:update');
+        const canUpdateAllPosts = await hasPermission('posts:update');
+        const canUpdateOwnPosts = await hasPermission('posts:update');
         const isAuthor = post.authorId === session.userId;
         
         if (!canUpdateAllPosts && !(canUpdateOwnPosts && isAuthor)) {
@@ -446,8 +452,8 @@ export async function deletePost(postId: string) {
         // Check permissions:
         // 1. Users with 'post:delete-all' permission can delete any post
         // 2. Post authors can delete their own posts if they have 'post:delete' permission
-        const canDeleteAllPosts = await hasPermission('post:delete-all');
-        const canDeleteOwnPosts = await hasPermission('post:delete');
+        const canDeleteAllPosts = await hasPermission('posts:delete');
+        const canDeleteOwnPosts = await hasPermission('posts:delete');
         const isAuthor = post.authorId === session.userId;
         
         if (!canDeleteAllPosts && !(canDeleteOwnPosts && isAuthor)) {

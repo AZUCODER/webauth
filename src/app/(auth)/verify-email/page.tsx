@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, Suspense} from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { verifyEmail } from '@/actions/auth/verifyActions'
 import Link from 'next/link'
@@ -15,6 +15,14 @@ function VerifyEmailContent() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
   const [countdown, setCountdown] = useState(3)
+  const [shouldRedirect, setShouldRedirect] = useState(false)
+  
+  // Handle redirect in a separate useEffect to avoid router updates during render
+  useEffect(() => {
+    if (shouldRedirect) {
+      router.push('/login')
+    }
+  }, [shouldRedirect, router])
   
   useEffect(() => {
     if (!token) {
@@ -38,7 +46,8 @@ function VerifyEmailContent() {
             setCountdown((prev) => {
               if (prev <= 1) {
                 clearInterval(timerRef)
-                router.push('/login')
+                // Trigger redirect via state instead of direct router.push
+                setShouldRedirect(true)
                 return 0
               }
               return prev - 1
@@ -62,7 +71,7 @@ function VerifyEmailContent() {
     return () => {
       if (timerRef) clearInterval(timerRef);
     };
-  }, [token, router])
+  }, [token]) // Remove router from dependencies
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-indigo-100 px-4">

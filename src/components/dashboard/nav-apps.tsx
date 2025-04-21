@@ -2,28 +2,16 @@
 
 import {
   IconDots,
-  IconFolder,
-  IconShare3,
-  IconTrash,
   IconChevronDown,
   type Icon,
 } from "@tabler/icons-react"
 
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/components/ui/sidebar"
 import Link from "next/link"
 import { useState } from "react"
@@ -44,7 +32,6 @@ export function NavApps({
 }: {
   items: AppItem[]
 }) {
-  const { isMobile } = useSidebar()
   const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({})
 
   const toggleSubmenu = (name: string) => {
