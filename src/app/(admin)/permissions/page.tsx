@@ -22,10 +22,11 @@ export default async function PermissionsPage({
   }
 
   // Parse search parameters
-  const page = searchParams?.page ? parseInt(searchParams.page) : 1;
-  const pageSize = searchParams?.pageSize ? parseInt(searchParams.pageSize) : 10;
-  const search = searchParams?.search || "";
-  const resourceFilter = searchParams?.resource || "";
+  const params = await Promise.resolve(searchParams);
+  const page = params?.page ? parseInt(params.page) : 1;
+  const pageSize = params?.pageSize ? parseInt(params.pageSize) : 10;
+  const search = params?.search || "";
+  const resourceFilter = params?.resource || "";
 
   // Get permissions with pagination and filters
   const result = await getPaginatedPermissions(

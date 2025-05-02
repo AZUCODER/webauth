@@ -21,9 +21,9 @@ export default async function ViewPostsPage() {
         here.
       </p>
       <div className="flex justify-end items-center mt-2 gap-2">
-        <Link href="/posts/add">
+        <Link href="/posts/add" className="flex justify-end items-center mt-2 gap-2">
           <Button variant="outline" size="sm">
-            <PlusCircle /> Add Post
+            <PlusCircle className="w-4 h-4 mr-2" /> Add Post
           </Button>
         </Link>
       </div>

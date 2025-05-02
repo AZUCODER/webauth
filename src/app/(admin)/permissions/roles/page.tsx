@@ -176,7 +176,7 @@ export default async function RolePermissionsPage() {
 
                 <div className="px-6 pb-6 pt-2 md:p-6 flex items-center">
                   <Link href={`/permissions/roles/${role}`}>
-                    <Button>
+                    <Button size="sm">
                       Manage Permissions <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </Link>

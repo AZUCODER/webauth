@@ -1,23 +1,23 @@
-'use client';
+"use client";
 
-import * as React from "react"
-import { Separator } from "@/components/ui/separator"
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import Link from "next/link"
-import { SearchModel } from "@/components/search/search-model"
-import { usePath } from "@/hooks/usePath"
+import * as React from "react";
+import { Separator } from "@/components/ui/separator";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import Link from "next/link";
+import { SearchModal } from "@/components/search/search-modal";
+import { usePath } from "@/hooks/usePath";
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
-  BreadcrumbSeparator
-} from "@/components/ui/breadcrumb"
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 export function SiteHeader() {
   const breadcrumbs = usePath();
-  
+
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
       <div className="flex w-full items-center justify-between gap-1 px-4 lg:gap-2 lg:px-6">
@@ -46,8 +46,8 @@ export function SiteHeader() {
             </BreadcrumbList>
           </Breadcrumb>
         </div>
-        <SearchModel />
+        <SearchModal />
       </div>
     </header>
-  )
+  );
 }

@@ -8,6 +8,7 @@ const publicRoutes = [
   '/register',
   '/verify-email',
   '/reset-password',
+  '/search',
 ];
 
 // Define dashboard routes (authenticated but not admin-only)

@@ -217,12 +217,6 @@ enum PostStatus {
   ARCHIVED
 }
 
-// Enum for file status
-enum FileStatus {
-  ACTIVE
-  INACTIVE
-  DELETED
-}
 
 // AuditLog - security events tracking
 model AuditLog {

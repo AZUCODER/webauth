@@ -4,6 +4,10 @@ import { getPermissions } from "@/actions/admin/permissionActions";
 import { getRolePermissions } from "@/actions/admin/roleActions";
 import { RolePermissionsForm } from "@/components/dashboard/forms/RolePermissionsForm";
 import { hasPermission } from "@/lib/authorization/permissions";
+import { AlertTriangle, Info } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface RolePermissionsPageProps {
   params: Promise<{
@@ -64,36 +68,62 @@ export default async function RolePermissionsPage({
   const isEditingSameRole = session.role === roleName;
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="mb-6">
-        <h1 className="text-xl font-bold">{roleName} Role Permissions</h1>
-        <p className="text-accent-foreground/60">
-          Select the permissions to assign to the {roleName.toLowerCase()} role.
-        </p>
+    <div className="container max-w-5xl mx-auto py-6 space-y-6">
+      {/* Breadcrumb Navigation */}
+      <Breadcrumb>
+        <BreadcrumbItem>
+          <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbItem>
+          <BreadcrumbLink href="/permissions/roles">Roles</BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbItem>
+          <span className="font-medium">{roleName}</span>
+        </BreadcrumbItem>
+      </Breadcrumb>
+      
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-xl flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-primary"></span>
+            {roleName} Role Permissions
+          </CardTitle>
+          <CardDescription>
+            Configure access permissions for the {roleName.toLowerCase()} role
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent>
+          {roleName === "ADMIN" && (
+            <Alert variant="warning" className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Administrator Role</AlertTitle>
+              <AlertDescription>
+                Changes to Admin permissions may affect system functionality. Admin users have implicit access to all features.
+              </AlertDescription>
+            </Alert>
+          )}
 
-        {roleName === "ADMIN" && (
-          <div className="mt-4 p-3 bg-amber-50 text-amber-800 border border-amber-200 rounded-md">
-            <strong>Warning:</strong> Changes to the Admin role permissions can
-            affect system functionality. Admin users have implicit access to all
-            system features regardless of assigned permissions.
+          {isEditingSameRole && session.role !== "ADMIN" && (
+            <Alert variant="info" className="mb-4">
+              <Info className="h-4 w-4" />
+              <AlertTitle>Self-Editing</AlertTitle>
+              <AlertDescription>
+                You are editing your own role. Be careful not to remove permissions you need.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="mt-4">
+            <RolePermissionsForm
+              role={roleName}
+              permissions={permissions}
+              initialPermissions={rolePermissions}
+              userRole={session.role}
+            />
           </div>
-        )}
-
-        {isEditingSameRole && session.role !== "ADMIN" && (
-          <div className="mt-4 p-3 bg-blue-50 text-blue-800 border border-blue-200 rounded-md">
-            <strong>Note:</strong> You are editing permissions for your own
-            role. Be careful not to remove permissions you need to perform your
-            duties.
-          </div>
-        )}
-      </div>
-
-      <RolePermissionsForm
-        role={roleName}
-        permissions={permissions}
-        initialPermissions={rolePermissions}
-        userRole={session.role}
-      />
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -8,12 +8,12 @@ import {
   IconDashboard,
   IconFolder,
   IconHelp,
-  IconSearch,
   IconUsers,
   IconPencilPlus,
   IconCircles,
   IconSettings,
   IconList,
+  IconMessageChatbot,
 } from "@tabler/icons-react";
 import { NavApps } from "@/components/dashboard/nav-apps";
 import { NavMain } from "@/components/dashboard/nav-main";
@@ -104,7 +104,7 @@ const data = {
         {
           name: "Role Management",
           url: "/permissions/roles",
-        }
+        },
       ],
     },
     {
@@ -127,14 +127,14 @@ const data = {
   // Sidebar-Nav-secondary
   navSecondary: [
     {
+      title: "Chat with AI",
+      url: "#",
+      icon: IconMessageChatbot,
+    },
+    {
       title: "Get Help",
       url: "#",
       icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
     },
   ],
 };
