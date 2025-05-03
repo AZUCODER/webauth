@@ -4,19 +4,12 @@ import { SESSION_CONSTANTS } from '@/lib/session/constants';
 
 // Define public routes that don't require authentication
 const publicRoutes = [
+  '/',
   '/login',
   '/register',
   '/verify-email',
   '/reset-password',
   '/search',
-];
-
-// Define dashboard routes (authenticated but not admin-only)
-const dashboardRoutes = [
-  '/dashboard',
-  '/profile',
-  '/files',
-  '/account',
 ];
 
 // Define public assets that don't require authentication
@@ -30,9 +23,9 @@ const publicAssets = [
 
 // Define admin-only routes
 const adminRoutes = [
-  '/admin',
-  '/settings',
+  '/users',
   '/permissions',
+  '/permissions/*',
 ];
 
 // Define route redirects that were previously in next.config.ts
@@ -55,7 +48,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Use NextResponse.next() to continue to the route when appropriate
-  let response = NextResponse.next();
+  const response = NextResponse.next();
   
   // Debug current request
   console.log(`[Middleware] Processing request for: ${pathname}`);
@@ -163,11 +156,6 @@ function isPublicRoute(path: string): boolean {
   
   console.log(`[Middleware] Path ${path} is public: ${isPublic}`);
   return isPublic;
-}
-
-// Helper function to check if a path is a dashboard route
-function isDashboardRoute(path: string): boolean {
-  return dashboardRoutes.some(route => path.startsWith(route));
 }
 
 // Helper function to check if a path is a public asset

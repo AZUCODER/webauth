@@ -4,15 +4,15 @@ import { getPaginatedPermissions } from "@/actions/admin/permissionActions";
 import { PermissionTable } from "@/components/dashboard/tables/PermissionTable";
 import { PermissionData } from "@/types/permission";
 
-export default async function PermissionsPage({ 
-  searchParams 
-}: { 
-  searchParams?: {
+export default async function PermissionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
     page?: string;
     pageSize?: string;
     search?: string;
     resource?: string;
-  }
+  }>;
 }) {
   // Check if user is logged in and is admin
   const session = await getSession();
@@ -22,11 +22,11 @@ export default async function PermissionsPage({
   }
 
   // Parse search parameters
-  const params = await Promise.resolve(searchParams);
-  const page = params?.page ? parseInt(params.page) : 1;
-  const pageSize = params?.pageSize ? parseInt(params.pageSize) : 10;
-  const search = params?.search || "";
-  const resourceFilter = params?.resource || "";
+  const resolvedSearchParams = await searchParams;
+  const page = resolvedSearchParams.page ? parseInt(resolvedSearchParams.page) : 1;
+  const pageSize = resolvedSearchParams.pageSize ? parseInt(resolvedSearchParams.pageSize) : 10;
+  const search = resolvedSearchParams.search || "";
+  const resourceFilter = resolvedSearchParams.resource || "";
 
   // Get permissions with pagination and filters
   const result = await getPaginatedPermissions(

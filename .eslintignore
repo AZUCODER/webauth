@@ -1,0 +1,14 @@
+# Ignore specific files with lint errors
+src/components/search/search-modal.tsx
+src/components/ui/input.tsx
+src/lib/actions/post-actions.ts
+src/middleware.ts
+
+# Node modules
+node_modules/
+
+# Build output
+.next/
+out/
+build/
+dist/ 

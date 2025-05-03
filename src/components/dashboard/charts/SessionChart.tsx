@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import api from '@/lib/api/axios';
+import api, { isAxiosError } from '@/lib/api/axios';
 import { 
   XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, AreaChart, Area 
@@ -50,7 +50,7 @@ export default function SessionChart() {
       } catch (err) {
         console.error('Error fetching session data:', err);
         setError(
-          axios.isAxiosError(err)
+          isAxiosError(err)
             ? err.response?.data?.message || err.message
             : err instanceof Error ? err.message : 'An unknown error occurred'
         );

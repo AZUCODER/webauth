@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { isAxiosError } from 'axios';
 
 // Create a base axios instance 
 const api = axios.create({
@@ -28,4 +28,5 @@ api.interceptors.response.use(
   }
 );
 
+export { isAxiosError };
 export default api; 

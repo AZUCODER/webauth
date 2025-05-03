@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 export default async function EditUserPage({ 
   params 
 }: { 
-  params: { id: string } 
+  params: Promise<{ id: string }> 
 }) {
   // Check if user is logged in and is admin
   const session = await getSession();
@@ -16,8 +16,11 @@ export default async function EditUserPage({
     redirect("/dashboard");
   }
 
+  // Resolve params
+  const { id } = await params;
+
   // Get user by ID
-  const result = await getUserById(params.id);
+  const result = await getUserById(id);
 
   if (!result.success || !result.user) {
     notFound();

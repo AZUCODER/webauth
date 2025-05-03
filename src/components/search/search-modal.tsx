@@ -12,7 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { useDebounce } from '@/hooks/useDebounce';
 import { PostStatus } from '@/types/prisma';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import Image from 'next/image';
+
 
 // Interface for post data
 interface Post {
@@ -167,7 +168,7 @@ export function SearchModal() {
                   <CardContent className="p-4 flex gap-4">
                     {post.featuredImage ? (
                       <div className="h-16 w-16 rounded-md overflow-hidden flex-shrink-0">
-                        <img src={post.featuredImage} alt={post.title} className="h-full w-full object-cover" />
+                        <Image src={post.featuredImage} alt={post.title} className="h-full w-full object-cover" />
                       </div>
                     ) : (
                       <div className="h-16 w-16 bg-muted rounded-md flex items-center justify-center flex-shrink-0">
@@ -203,7 +204,7 @@ export function SearchModal() {
             </div>
           ) : searchTerm ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">No posts found matching "{searchTerm}"</p>
+              <p className="text-muted-foreground">No posts found matching &quot;{searchTerm}&quot;</p>
             </div>
           ) : (
             <div className="text-center py-8">

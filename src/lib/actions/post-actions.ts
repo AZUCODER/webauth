@@ -1,6 +1,5 @@
 'use server';
 
-import { db } from '@/lib/db';
 import { Post } from '@/lib/types';
 
 // Mock database of posts for demonstration

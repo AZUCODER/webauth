@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="400" height="200" viewBox="0 0 400 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Asterisk-like symbol with square cap -->
+  <g transform="translate(50, 100) scale(0.8)">
+    <path d="M70 100 L130 100" stroke="#0F3D35" stroke-width="10" stroke-linecap="round"/>
+    <path d="M80 70 L120 130" stroke="#0F3D35" stroke-width="10" stroke-linecap="round"/>
+    <path d="M120 70 L80 130" stroke="#0F3D35" stroke-width="10" stroke-linecap="round"/>
+    <path d="M100 70 L100 90" stroke="#0F3D35" stroke-width="10" stroke-linecap="square"/>
+    <path d="M75 75 L90 90" stroke="#0F3D35" stroke-width="10" stroke-linecap="square"/>
+    <path d="M125 75 L110 90" stroke="#0F3D35" stroke-width="10" stroke-linecap="square"/>
+  </g>
+  
+  <!-- Text: symtext -->
+  <text x="230" y="115" font-family="Arial, sans-serif" font-weight="bold" font-size="50" fill="#0F3D35" text-anchor="left">symtext</text>
+</svg> 

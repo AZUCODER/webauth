@@ -2,13 +2,13 @@ import { NextConfig } from 'next';
 
 const config: NextConfig = {
   reactStrictMode: true,
-  // Temporarily ignore TypeScript errors to fix the build
+  // Enable TypeScript type checking during builds
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
-  // Temporarily ignore ESLint errors to fix the build
+  // Enable ESLint during builds
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   // Set the entire application to dynamic rendering mode
   // to avoid issues with cookies and session
