@@ -82,14 +82,15 @@ export function SettingsTable({
       category: prev.category || "all"
     }));
     
-    // If we have initial filters, trigger the filter change handler
+    // Only initialize from initial filters on mount, not on every update
     if (initialFilters && (initialFilters.search || initialFilters.category)) {
-      onFilterChange?.({
-        search: initialFilters.search,
-        category: initialFilters.category === "all" ? "" : initialFilters.category
+      setFilters({
+        search: initialFilters.search || "",
+        category: initialFilters.category || "all"
       });
     }
-  }, [initialFilters, onFilterChange]);
+    // Removed the onFilterChange call that was causing the infinite loop
+  }, []); // Empty dependency array means this only runs once on mount
 
   const handleFilterChange = (key: string, value: string) => {
     // Convert "all" value to empty string for filtering

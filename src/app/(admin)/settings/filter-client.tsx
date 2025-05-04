@@ -38,7 +38,7 @@ export function SettingsFilterClient({
 }: SettingsFilterClientProps) {
   const { setPage, setFilters } = useSettingsFilters();
   
-  // Apply initial filters when component mounts - outside conditional to follow hooks rules
+  // Apply initial filters when component mounts - only once on mount
   useEffect(() => {
     if (initialFilters.search || initialFilters.category) {
       setFilters({
@@ -46,7 +46,7 @@ export function SettingsFilterClient({
         category: initialFilters.category
       });
     }
-  }, [initialFilters, setFilters]);
+  }, []); // Empty dependency array means this only runs once on mount
 
   // Make sure children is a SettingsTable component
   if (React.isValidElement(children) && children.type === SettingsTable) {

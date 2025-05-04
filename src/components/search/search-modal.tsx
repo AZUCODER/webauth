@@ -124,7 +124,7 @@ export function SearchModal() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <div className="ml-auto relative max-w-md cursor-pointer">
-          <div className="flex items-center rounded-md border px-3 py-1">
+          <div className="flex items-center  px-3 py-1">
             <Search className="h-4 w-4 text-muted-foreground mr-2" />
             <Input 
               readOnly

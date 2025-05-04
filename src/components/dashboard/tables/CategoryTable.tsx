@@ -135,6 +135,7 @@ export default function CategoryTable({
                     <Button
                       variant="destructive"
                       size="sm"
+                      className="text-rose-50"
                       onClick={() => confirmDelete(category)}
                     >
                       <Trash2 className="h-3.5 w-3.5 mr-1" />
