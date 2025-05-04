@@ -436,12 +436,12 @@ export default function Navbar() {
           <div className="flex items-center gap-3">
             <ThemeSwitcher />
             <div className="hidden md:flex md:items-center md:gap-3">
-              <Link href="/signin">
+              <Link href="/login">
                 <Button variant="ghost" size="sm" className="font-medium">
                   Sign in
                 </Button>
               </Link>
-              <Link href="/signup">
+              <Link href="/register">
                 <Button
                   size="sm"
                   className="bg-indigo-600 hover:bg-indigo-700 font-medium text-white"
@@ -583,12 +583,12 @@ export default function Navbar() {
             </Link>
 
             <div className="flex flex-col gap-2 pt-4">
-              <Link href="/signin" onClick={() => setIsMenuOpen(false)}>
+              <Link href="/login" onClick={() => setIsMenuOpen(false)}>
                 <Button variant="outline" className="w-full">
                   Sign in
                 </Button>
               </Link>
-              <Link href="/signup" onClick={() => setIsMenuOpen(false)}>
+              <Link href="/register" onClick={() => setIsMenuOpen(false)}>
                 <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
                   Start your project
                 </Button>

@@ -23,14 +23,6 @@ const config: NextConfig = {
         hostname: 'tony-buymeacoffee.oss-cn-chengdu.aliyuncs.com',
         pathname: '**',
       },
-      {
-        protocol: 'https',
-        hostname: 'cdn.pixabay.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
     ],
   },
   webpack: (config, { isServer }) => {
