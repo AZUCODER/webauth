@@ -35,7 +35,7 @@ export default async function EditUserPage({
   const user = result.user;
 
   // Validate role
-  const validRoles = ["USER", "EDITOR", "MANAGER", "ADMIN"];
+  const validRoles = ["USER", "ADMIN"];
   if (!validRoles.includes(user.role)) {
     throw new Error(`Invalid user role: ${user.role}`);
   }
@@ -52,7 +52,7 @@ export default async function EditUserPage({
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role as "USER" | "EDITOR" | "MANAGER" | "ADMIN"
+        role: user.role as "USER" | "ADMIN"
       }} />
     </div>
   );

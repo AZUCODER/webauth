@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import Image from "next/image";
 import {
   Menu,
   X,
@@ -247,15 +248,15 @@ export default function Navbar() {
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center space-x-2">
-              {/* <Image
-                src="/logo.jpg"
+              <Image
+                src="/logo.svg"
                 alt="Symtext Logo"
-                width={36}
-                height={36}
-                className="rounded-full"
-              /> */}
-              <span className="hidden text-xl sm:inline-block">
-                Symtext
+                width={24}
+                height={24}
+                className="rounded-full dark:invert"
+              />
+              <span className="hidden sm:inline-block">
+                Algoriware
               </span>
             </Link>
 

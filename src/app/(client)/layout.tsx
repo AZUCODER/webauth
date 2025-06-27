@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "WebAuth | Authentication & Authorization Made Simple",
-  description: "The modern authentication and authorization solution for Next.js applications.",
+  title: "Algoriware | Authentication & Authorization Made Simple",
+  description: "The modern authentication and authorization solution for web applications.",
   keywords: "authentication, authorization, nextjs, web development, security",
 };
 

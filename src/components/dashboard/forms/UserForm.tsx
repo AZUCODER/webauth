@@ -24,7 +24,7 @@ type UserFormProps = {
     id: string;
     email: string;
     name: string | null;
-    role: "USER" | "EDITOR" | "MANAGER" | "ADMIN";
+    role: "USER"| "ADMIN";
   };
 };
 
@@ -64,7 +64,7 @@ export function UserForm({ user }: UserFormProps) {
   }
   
   const handleRoleChange = (value: string) => {
-    setFormData(prev => ({ ...prev, role: value as 'USER' |'EDITOR'|'MANAGER'| 'ADMIN' }))
+    setFormData(prev => ({ ...prev, role: value as 'USER' | 'ADMIN' }))
     setFormChanged(true)
     
     // Clear role error
@@ -226,8 +226,6 @@ export function UserForm({ user }: UserFormProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="USER">User</SelectItem>
-                  <SelectItem value="EDITOR">Editor</SelectItem>
-                  <SelectItem value="MANAGER">Manager</SelectItem>
                   <SelectItem value="ADMIN">Admin</SelectItem>
                 </SelectContent>
               </Select>

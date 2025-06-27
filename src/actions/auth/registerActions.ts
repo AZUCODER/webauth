@@ -62,7 +62,7 @@ export async function handleRegister(prevState: RegisterFormState, formData: For
         return {
             errors: { general: '' },
             success: true,
-            message: 'Registration successful! Please check your email to verify your account.'
+            message: 'Please check your email to verify your account.'
         };
 
     } catch (error) {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import Image from "next/image";
 
 // Footer links organized by category
 const footerLinks = {
@@ -41,7 +42,14 @@ export default function Footer() {
         <div className="pb-8">
           <div className="flex flex-col justify-between space-y-5 md:flex-row md:space-y-0">
             <div className="flex items-center space-x-3">
-              <span className="text-lg font-bold">Symtext</span>
+              <Image
+                src="/logo.svg"
+                alt="NextWebAuth Logo"
+                width={24}
+                height={24}
+                className="dark:invert"
+              />
+              <span>Algoriware</span>
             </div>
             <div className="flex items-center gap-5">
               <ThemeSwitcher />
@@ -135,7 +143,7 @@ export default function Footer() {
 
         <div className="flex flex-col justify-between gap-5 border-t pt-8 md:flex-row">
           <div className="text-sm text-muted-foreground">
-            <p>© {new Date().getFullYear()} NextWebAuth. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} Algoriware. All rights reserved.</p>
           </div>
           <div className="flex items-center">
             <p className="text-sm text-muted-foreground">
